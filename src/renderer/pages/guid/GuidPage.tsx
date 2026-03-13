@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ipcBridge } from '@/common';
 import { resolveLocaleKey } from '@/common/utils';
 import { useInputFocusRing } from '@/renderer/hooks/useInputFocusRing';
 import { openExternalUrl } from '@/renderer/utils/platform';
@@ -23,8 +24,9 @@ import { useGuidMention } from './hooks/useGuidMention';
 import { useGuidModelSelection } from './hooks/useGuidModelSelection';
 import { useGuidSend } from './hooks/useGuidSend';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
-import { ConfigProvider } from '@arco-design/web-react';
-import React, { useCallback, useRef } from 'react';
+import { Button, ConfigProvider, Message } from '@arco-design/web-react';
+import { Microphone, VoiceOff } from '@icon-park/react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styles from './index.module.css';
@@ -34,9 +36,12 @@ const GuidPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const guidContainerRef = useRef<HTMLDivElement>(null);
+  const voiceBaseRef = useRef<string | null>(null);
   const { closeAllTabs, openTab } = useConversationTabs();
   const { activeBorderColor, inactiveBorderColor, activeShadow } = useInputFocusRing();
   const localeKey = resolveLocaleKey(i18n.language);
+  const [messageApi, messageContext] = Message.useMessage();
+  const [isRecording, setIsRecording] = useState(false);
 
   // Open external link
   const openLink = useCallback(async (url: string) => {
@@ -112,6 +117,33 @@ const GuidPage: React.FC = () => {
   });
 
   // --- Coordinated handlers (depend on multiple hooks) ---
+  useEffect(() => {
+    const unsubscribe = ipcBridge.speech.transcript.on((event) => {
+      if (event.error) {
+        setIsRecording(false);
+        voiceBaseRef.current = null;
+        messageApi.error(event.error);
+        return;
+      }
+
+      const incoming = event.text?.trim();
+      if (!incoming) return;
+
+      const currentBase = voiceBaseRef.current ?? guidInput.input.trim();
+      if (event.isFinal) {
+        const committed = currentBase ? `${currentBase} ${incoming}` : incoming;
+        voiceBaseRef.current = committed;
+        guidInput.setInput(committed);
+        return;
+      }
+
+      const preview = currentBase ? `${currentBase} ${incoming}` : incoming;
+      guidInput.setInput(preview);
+    });
+
+    return unsubscribe;
+  }, [guidInput.input, guidInput.setInput, messageApi]);
+
   const handleInputChange = useCallback(
     (value: string) => {
       guidInput.setInput(value);
@@ -188,6 +220,32 @@ const GuidPage: React.FC = () => {
     [mention, guidInput.input, send.sendMessageHandler]
   );
 
+  const toggleVoiceInput = useCallback(async () => {
+    if (isRecording) {
+      await ipcBridge.speech.stopVoiceInput.invoke();
+      setIsRecording(false);
+      voiceBaseRef.current = null;
+      return;
+    }
+
+    const result = await ipcBridge.speech.startVoiceInput.invoke({});
+    if (!result.success) {
+      messageApi.error(result.msg || t('messages.voiceInputFailed', { defaultValue: 'Voice input failed' }));
+      setIsRecording(false);
+      voiceBaseRef.current = null;
+      return;
+    }
+
+    voiceBaseRef.current = guidInput.input.trim();
+    setIsRecording(true);
+  }, [guidInput.input, isRecording, messageApi, t]);
+
+  useEffect(() => {
+    return () => {
+      void ipcBridge.speech.stopVoiceInput.invoke();
+    };
+  }, []);
+
   const handleSelectAgentFromPillBar = useCallback(
     (key: string) => {
       agentSelection.setSelectedAgentKey(key);
@@ -245,12 +303,23 @@ const GuidPage: React.FC = () => {
           console.error('Failed to send message:', error);
         });
       }}
+      voiceInputButton={
+        <Button
+          shape='circle'
+          type={isRecording ? 'primary' : 'secondary'}
+          onClick={() => {
+            void toggleVoiceInput();
+          }}
+          icon={isRecording ? <VoiceOff theme='filled' size='14' fill='currentColor' /> : <Microphone theme='outline' size='14' fill='currentColor' strokeWidth={2} />}
+        />
+      }
     />
   );
 
   return (
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
       <div ref={guidContainerRef} className={styles.guidContainer}>
+        {messageContext}
         <div className={styles.guidLayout}>
           <p className='text-2xl font-semibold mb-6 text-0 text-center'>{t('conversation.welcome.title')}</p>
 

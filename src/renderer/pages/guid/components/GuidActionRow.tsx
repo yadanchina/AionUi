@@ -44,9 +44,10 @@ type GuidActionRowProps = {
   loading: boolean;
   isButtonDisabled: boolean;
   onSend: () => void;
+  voiceInputButton?: React.ReactNode;
 };
 
-const GuidActionRow: React.FC<GuidActionRowProps> = ({ files, onFilesUploaded, onSelectWorkspace, modelSelectorNode, selectedAgent, effectiveModeAgent, selectedMode, onModeSelect, isPresetAgent, selectedAgentInfo, customAgents, localeKey, onClosePresetTag, loading, isButtonDisabled, onSend }) => {
+const GuidActionRow: React.FC<GuidActionRowProps> = ({ files, onFilesUploaded, onSelectWorkspace, modelSelectorNode, selectedAgent, effectiveModeAgent, selectedMode, onModeSelect, isPresetAgent, selectedAgentInfo, customAgents, localeKey, onClosePresetTag, loading, isButtonDisabled, onSend, voiceInputButton }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
@@ -126,6 +127,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({ files, onFilesUploaded, o
         {isPresetAgent && selectedAgentInfo && <PresetAgentTag agentInfo={selectedAgentInfo} customAgents={customAgents} localeKey={localeKey} onClose={onClosePresetTag} />}
       </div>
       <div className={styles.actionSubmit}>
+        {voiceInputButton}
         <Button
           shape='circle'
           type='primary'

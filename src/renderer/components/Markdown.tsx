@@ -69,9 +69,19 @@ const getDiffLineStyle = (line: string, isDark: boolean): React.CSSProperties =>
   return {};
 };
 
-function CodeBlock(props: any) {
+const normalizeCodeLanguage = (language?: string): string => {
+  if (!language) return 'text';
+  const normalized = language.toLowerCase();
+  if (normalized === 'shell' || normalized === 'zsh') return 'bash';
+  if (normalized === 'yml') return 'yaml';
+  if (normalized === 'plaintext') return 'text';
+  return normalized;
+};
+
+const MermaidBlock: React.FC<{ chart: string }> = ({ chart }) => {
   const { t } = useTranslation();
-  const [fold, setFlow] = useState(true);
+  const [svg, setSvg] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>(() => {
     return (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
   });
@@ -91,20 +101,165 @@ function CodeBlock(props: any) {
     return () => observer.disconnect();
   }, []);
 
+  React.useEffect(() => {
+    let disposed = false;
+
+    const renderDiagram = async () => {
+      try {
+        setError(null);
+        const mermaidModule = await import('mermaid');
+        const mermaid = (mermaidModule.default ?? mermaidModule) as any;
+        mermaid.initialize({
+          startOnLoad: false,
+          securityLevel: 'antiscript',
+          theme: currentTheme === 'dark' ? 'dark' : 'default',
+        });
+
+        const id = `mermaid-${Math.random().toString(36).slice(2)}`;
+        const rendered = await mermaid.render(id, chart);
+        if (!disposed) {
+          setSvg(rendered.svg);
+        }
+      } catch (renderError) {
+        if (!disposed) {
+          setSvg('');
+          setError(renderError instanceof Error ? renderError.message : t('messages.renderFailed', 'Render failed'));
+        }
+      }
+    };
+
+    void renderDiagram();
+
+    return () => {
+      disposed = true;
+    };
+  }, [chart, currentTheme, t]);
+
+  if (error) {
+    return (
+      <div className='mermaid-block'>
+        <div className='mermaid-error'>{error}</div>
+        <pre>{chart}</pre>
+      </div>
+    );
+  }
+
+  return <div className='mermaid-block'>{svg ? <div className='mermaid-diagram' dangerouslySetInnerHTML={{ __html: svg }} /> : <div className='mermaid-loading'>{t('common.loading', 'Loading...')}</div>}</div>;
+};
+
+function CodeBlock(props: any) {
+  const { t } = useTranslation();
+  const [fold, setFlow] = useState(true);
+  const shellRef = React.useRef<HTMLDivElement | null>(null);
+  const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>(() => {
+    return (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
+  });
+
+  React.useEffect(() => {
+    const updateTheme = () => {
+      const theme = (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
+      setCurrentTheme(theme);
+    };
+
+    const observer = new MutationObserver(updateTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  const getScrollableParent = (el: HTMLElement | null): HTMLElement | null => {
+    if (!el) return null;
+    let current: HTMLElement | null = el.parentElement;
+    while (current) {
+      const style = window.getComputedStyle(current);
+      const canScroll = /(auto|scroll)/.test(style.overflowY || '');
+      if (canScroll && current.scrollHeight > current.clientHeight) {
+        return current;
+      }
+      current = current.parentElement;
+    }
+    return null;
+  };
+
+  const toggleFold = (nextFold: boolean) => {
+    const shell = shellRef.current;
+    if (!shell) {
+      setFlow(nextFold);
+      return;
+    }
+
+    const scrollParent = getScrollableParent(shell);
+    const shellTopBefore = shell.getBoundingClientRect().top;
+    const scrollTopBefore = scrollParent?.scrollTop ?? window.scrollY;
+
+    setFlow(nextFold);
+
+    requestAnimationFrame(() => {
+      const shellTopAfter = shell.getBoundingClientRect().top;
+      const delta = shellTopAfter - shellTopBefore;
+      if (Math.abs(delta) < 1) return;
+
+      if (scrollParent) {
+        scrollParent.scrollTop = scrollTopBefore + delta;
+      } else {
+        window.scrollTo({ top: scrollTopBefore + delta });
+      }
+    });
+  };
+
   return useMemo(() => {
-    const { children, className, node: _node, hiddenCodeCopyButton: _hiddenCodeCopyButton, codeStyle: _codeStyle, ...rest } = props;
+    const { children, className, node: _node, hiddenCodeCopyButton, codeStyle: _codeStyle, ...rest } = props;
     const match = /language-(\w+)/.exec(className || '');
-    const language = match?.[1] || 'text';
+    const language = normalizeCodeLanguage(match?.[1]);
     const codeTheme = currentTheme === 'dark' ? vs2015 : vs;
+    const codeContent = String(children).replace(/\n$/, '');
+    const lineCount = codeContent ? codeContent.split('\n').length : 0;
+
+    if (language === 'mermaid') {
+      return (
+        <div style={{ width: '100%', minWidth: 0, maxWidth: '100%', ...(props.codeStyle || {}) }}>
+          <div className='code-block-shell' ref={shellRef}>
+            <div className='code-block-toolbar'>
+              <div className='code-block-meta'>
+                <span className='code-block-lang'>mermaid</span>
+                <span className='code-block-lines'>{lineCount} lines</span>
+              </div>
+              {!hiddenCodeCopyButton && (
+                <div className='code-block-actions'>
+                  <Copy
+                    theme='outline'
+                    size='18'
+                    style={{ cursor: 'pointer' }}
+                    fill='var(--text-secondary)'
+                    onClick={() => {
+                      void copyText(codeContent)
+                        .then(() => {
+                          Message.success(t('common.copySuccess'));
+                        })
+                        .catch(() => {
+                          Message.error(t('common.copyFailed'));
+                        });
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+            <MermaidBlock chart={codeContent} />
+          </div>
+        </div>
+      );
+    }
 
     // Render latex/math code blocks as KaTeX display math
     // Skip full LaTeX documents (with \documentclass, \begin{document}, etc.) — KaTeX only handles math
     if (language === 'latex' || language === 'math' || language === 'tex') {
-      const latexSource = String(children).replace(/\n$/, '');
-      const isFullDocument = /\\(documentclass|begin\{document\}|usepackage)\b/.test(latexSource);
+      const isFullDocument = /\\(documentclass|begin\{document\}|usepackage)\b/.test(codeContent);
       if (!isFullDocument) {
         try {
-          const html = katex.renderToString(latexSource, {
+          const html = katex.renderToString(codeContent, {
             displayMode: true,
             throwOnError: false,
           });
@@ -132,60 +287,37 @@ function CodeBlock(props: any) {
     const isDiff = language === 'diff';
     const formattedContent = formatCode(children);
     const diffLines = isDiff ? formattedContent.split('\n') : [];
+    const displayLineCount = formattedContent ? formattedContent.split('\n').length : lineCount;
 
     return (
       <div style={{ width: '100%', minWidth: 0, maxWidth: '100%', ...(props.codeStyle || {}) }}>
-        <div
-          style={{
-            border: '1px solid var(--bg-3)',
-            borderRadius: '0.3rem',
-            overflow: 'hidden',
-            overflowX: 'auto',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              backgroundColor: 'var(--bg-2)',
-              borderTopLeftRadius: '0.3rem',
-              borderTopRightRadius: '0.3rem',
-              borderBottomLeftRadius: fold ? '0.3rem' : '0',
-              borderBottomRightRadius: fold ? '0.3rem' : '0',
-              padding: '6px 10px',
-              borderBottom: !fold ? '1px solid var(--bg-3)' : undefined,
-            }}
-          >
-            <span
-              style={{
-                textDecoration: 'none',
-                color: 'var(--text-secondary)',
-                fontSize: '12px',
-                lineHeight: '20px',
-              }}
-            >
-              {'<' + language.toLocaleLowerCase() + '>'}
-            </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className='code-block-shell' ref={shellRef}>
+          <div className='code-block-toolbar'>
+            <div className='code-block-meta'>
+              <span className='code-block-lang'>{language.toLocaleLowerCase()}</span>
+              <span className='code-block-lines'>{displayLineCount} lines</span>
+            </div>
+            <div className='code-block-actions'>
               {/* 复制代码按钮 / Copy code button */}
-              <Copy
-                theme='outline'
-                size='18'
-                style={{ cursor: 'pointer' }}
-                fill='var(--text-secondary)'
-                onClick={() => {
-                  void copyText(formatCode(children))
-                    .then(() => {
-                      Message.success(t('common.copySuccess'));
-                    })
-                    .catch(() => {
-                      Message.error(t('common.copyFailed'));
-                    });
-                }}
-              />
+              {!hiddenCodeCopyButton && (
+                <Copy
+                  theme='outline'
+                  size='18'
+                  style={{ cursor: 'pointer' }}
+                  fill='var(--text-secondary)'
+                  onClick={() => {
+                    void copyText(formattedContent)
+                      .then(() => {
+                        Message.success(t('common.copySuccess'));
+                      })
+                      .catch(() => {
+                        Message.error(t('common.copyFailed'));
+                      });
+                  }}
+                />
+              )}
               {/* 折叠/展开按钮 / Fold/unfold button */}
-              {logicRender(!fold, <Up theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => setFlow(true)} />, <Down theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => setFlow(false)} />)}
+              {logicRender(!fold, <Up theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => toggleFold(true)} />, <Down theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => toggleFold(false)} />)}
             </div>
           </div>
           {logicRender(
@@ -223,19 +355,8 @@ function CodeBlock(props: any) {
                   },
                 }}
               />
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                  alignItems: 'center',
-                  backgroundColor: 'var(--bg-2)',
-                  borderBottomLeftRadius: '0.3rem',
-                  borderBottomRightRadius: '0.3rem',
-                  padding: '6px 10px',
-                  borderTop: '1px solid var(--bg-3)',
-                }}
-              >
-                <Up theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => setFlow(true)} title={t('common.collapse', '收起')} />
+              <div className='code-block-footer'>
+                <Up theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => toggleFold(true)} title={t('common.collapse', '收起')} />
               </div>
             </>
           )}
@@ -312,6 +433,76 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
   pre {
     max-width: 100%;
     overflow-x: auto;
+  }
+  .code-block-shell {
+    border: 1px solid var(--bg-3);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--bg-1);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+  }
+  .code-block-toolbar,
+  .code-block-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--bg-2);
+  }
+  .code-block-toolbar {
+    border-bottom: 1px solid var(--bg-3);
+  }
+  .code-block-footer {
+    justify-content: flex-end;
+    border-top: 1px solid var(--bg-3);
+  }
+  .code-block-meta,
+  .code-block-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .code-block-lang {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--bg-1);
+    color: var(--text-primary);
+    font-size: 12px;
+    line-height: 18px;
+    text-transform: lowercase;
+  }
+  .code-block-lines {
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 18px;
+  }
+  .mermaid-block {
+    padding: 16px;
+    overflow-x: auto;
+    background: var(--bg-1);
+  }
+  .mermaid-diagram {
+    display: flex;
+    justify-content: center;
+    min-width: fit-content;
+  }
+  .mermaid-diagram svg {
+    max-width: 100%;
+    height: auto;
+  }
+  .mermaid-error {
+    color: #d14343;
+    font-size: 13px;
+    line-height: 20px;
+    margin-bottom: 12px;
+  }
+  .mermaid-loading {
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 20px;
   }
   img {
     max-width: 100%;

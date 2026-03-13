@@ -21,6 +21,12 @@ export const shell = {
   openExternal: bridge.buildProvider<void, string>('open-external'), // 使用系统默认程序打开外部链接
 };
 
+export const speech = {
+  startVoiceInput: bridge.buildProvider<IBridgeResponse<{ running: boolean; modelPath?: string }>, { modelPath?: string }>('speech.start-voice-input'),
+  stopVoiceInput: bridge.buildProvider<IBridgeResponse<{ running: boolean }>, void>('speech.stop-voice-input'),
+  transcript: bridge.buildEmitter<{ text?: string; isFinal?: boolean; error?: string }>('speech.transcript'),
+};
+
 //通用会话能力
 export const conversation = {
   create: bridge.buildProvider<TChatConversation, ICreateConversationParams>('create-conversation'), // 创建对话

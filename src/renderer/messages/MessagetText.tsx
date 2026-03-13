@@ -8,7 +8,7 @@ import type { IMessageText } from '@/common/chatLib';
 import { AIONUI_FILES_MARKER } from '@/common/constants';
 import { iconColors } from '@/renderer/theme/colors';
 import { Alert, Message, Tooltip } from '@arco-design/web-react';
-import { Copy } from '@icon-park/react';
+import { Copy, VolumeMute, VolumeNotice } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -51,6 +51,29 @@ const useFormatContent = (content: string) => {
   }, [content]);
 };
 
+const splitSpeechText = (input: string, maxLength = 180): string[] => {
+  const text = input.trim();
+  if (!text) return [];
+  const chunks: string[] = [];
+  let current = '';
+  const parts = text.split(/([。！？.!?，,\n])/);
+  for (const part of parts) {
+    if (!part) continue;
+    if ((current + part).length <= maxLength) {
+      current += part;
+      continue;
+    }
+    if (current) chunks.push(current.trim());
+    current = part;
+    while (current.length > maxLength) {
+      chunks.push(current.slice(0, maxLength).trim());
+      current = current.slice(maxLength);
+    }
+  }
+  if (current.trim()) chunks.push(current.trim());
+  return chunks.filter(Boolean);
+};
+
 const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   // Filter think tags from content before rendering
   // 在渲染前过滤 think 标签
@@ -66,6 +89,8 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   const { data, json } = useFormatContent(text);
   const { t } = useTranslation();
   const [showCopyAlert, setShowCopyAlert] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const utterancesRef = React.useRef<SpeechSynthesisUtterance[]>([]);
   const isUserMessage = message.position === 'right';
 
   // 过滤空内容，避免渲染空DOM
@@ -87,10 +112,113 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
       });
   };
 
+  const stopSpeaking = React.useCallback(() => {
+    utterancesRef.current = [];
+    window.speechSynthesis?.cancel();
+    setIsSpeaking(false);
+  }, []);
+
+  const waitForVoices = React.useCallback(async (): Promise<SpeechSynthesisVoice[]> => {
+    const speech = window.speechSynthesis;
+    if (!speech) return [];
+    const direct = speech.getVoices();
+    if (direct.length > 0) return direct;
+    return await new Promise<SpeechSynthesisVoice[]>((resolve) => {
+      let done = false;
+      const timeout = window.setTimeout(() => {
+        if (done) return;
+        done = true;
+        resolve(speech.getVoices());
+      }, 1200);
+      const handler = () => {
+        if (done) return;
+        done = true;
+        window.clearTimeout(timeout);
+        speech.removeEventListener('voiceschanged', handler);
+        resolve(speech.getVoices());
+      };
+      speech.addEventListener('voiceschanged', handler);
+    });
+  }, []);
+
+  const handleSpeak = () => {
+    const speech = window.speechSynthesis;
+    if (!speech) {
+      Message.error(t('messages.voicePlaybackNotSupported', { defaultValue: 'Voice playback is not supported in current environment' }));
+      return;
+    }
+
+    if (isSpeaking) {
+      stopSpeaking();
+      return;
+    }
+
+    const speakText = (json ? JSON.stringify(data, null, 2) : text).trim();
+    if (!speakText) return;
+    const chunks = splitSpeechText(speakText);
+    if (!chunks.length) return;
+
+    void waitForVoices().then((voices) => {
+      const preferredLang = navigator.language || 'en-US';
+      const matchedVoice = voices.find((voice) => voice.lang.toLowerCase().startsWith(preferredLang.toLowerCase().split('-')[0]));
+
+      utterancesRef.current = chunks.map((chunk) => {
+        const utterance = new SpeechSynthesisUtterance(chunk);
+        utterance.lang = preferredLang;
+        if (matchedVoice) {
+          utterance.voice = matchedVoice;
+        }
+        return utterance;
+      });
+
+      const queue = utterancesRef.current;
+      if (!queue.length) return;
+
+      const playAt = (index: number) => {
+        if (index >= queue.length) {
+          setIsSpeaking(false);
+          utterancesRef.current = [];
+          return;
+        }
+        const utterance = queue[index];
+        utterance.onend = () => playAt(index + 1);
+        utterance.onerror = (event) => {
+          const error = (event as { error?: string })?.error;
+          setIsSpeaking(false);
+          utterancesRef.current = [];
+          if (error !== 'canceled' && error !== 'interrupted') {
+            Message.error(t('messages.voicePlaybackFailed', { defaultValue: 'Voice playback failed' }));
+          }
+        };
+        speech.speak(utterance);
+      };
+
+      speech.cancel();
+      setIsSpeaking(true);
+      playAt(0);
+    });
+  };
+
+  React.useEffect(() => {
+    return () => {
+      if (isSpeaking) {
+        stopSpeaking();
+      }
+    };
+  }, [isSpeaking, stopSpeaking]);
+
   const copyButton = (
     <Tooltip content={t('common.copy', { defaultValue: 'Copy' })}>
       <div className='p-4px rd-4px cursor-pointer hover:bg-3 transition-colors opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto' onClick={handleCopy} style={{ lineHeight: 0 }}>
         <Copy theme='outline' size='16' fill={iconColors.secondary} />
+      </div>
+    </Tooltip>
+  );
+
+  const speakButton = (
+    <Tooltip content={isSpeaking ? t('messages.stopSpeaking', { defaultValue: 'Stop speaking' }) : t('messages.speak', { defaultValue: 'Speak' })}>
+      <div className='p-4px rd-4px cursor-pointer hover:bg-3 transition-colors opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto text-t-secondary' onClick={handleSpeak} style={{ lineHeight: 0 }}>
+        {isSpeaking ? <VolumeMute theme='outline' size='14' fill='currentColor' /> : <VolumeNotice theme='outline' size='14' fill='currentColor' />}
       </div>
     </Tooltip>
   );
@@ -138,6 +266,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
             'justify-start': !isUserMessage,
           })}
         >
+          {speakButton}
           {copyButton}
         </div>
       </div>

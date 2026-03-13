@@ -441,6 +441,44 @@ const createWindow = (): void => {
   });
   console.log(`[AionUi] Main window created (id=${mainWindow.id})`);
 
+  // Allow microphone-related media permissions for the main renderer.
+  // This is required for voice input features (SpeechRecognition / getUserMedia).
+  mainWindow.webContents.session.setPermissionRequestHandler((webContents, permission, callback, details) => {
+    if (webContents.id !== mainWindow.webContents.id) {
+      callback(false);
+      return;
+    }
+
+    const isMediaPermission = permission === 'media';
+    if (!isMediaPermission) {
+      callback(false);
+      return;
+    }
+
+    const mediaTypes = (details as { mediaTypes?: string[] }).mediaTypes || [];
+    if (permission === 'media' && mediaTypes.length > 0 && !mediaTypes.includes('audio')) {
+      callback(false);
+      return;
+    }
+
+    callback(true);
+  });
+
+  mainWindow.webContents.session.setPermissionCheckHandler((webContents, permission, _requestingOrigin, details) => {
+    if (webContents.id !== mainWindow.webContents.id) {
+      return false;
+    }
+    if (permission !== 'media') {
+      return false;
+    }
+
+    const mediaType = (details as { mediaType?: string }).mediaType;
+    if (mediaType && mediaType !== 'audio') {
+      return false;
+    }
+    return true;
+  });
+
   // Show window after content is ready to prevent FOUC (Flash of Unstyled Content)
   // Use 'ready-to-show' which fires when renderer has painted first frame,
   // combined with 'did-finish-load' as belt-and-suspenders approach.

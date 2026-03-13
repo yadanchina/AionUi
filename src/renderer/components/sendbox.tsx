@@ -5,13 +5,14 @@
  */
 
 import { useInputFocusRing } from '@/renderer/hooks/useInputFocusRing';
+import { ipcBridge } from '@/common';
 import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/SlashCommandMenu';
 import { useSlashCommandController } from '@/renderer/hooks/useSlashCommandController';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/focus';
 import { Button, Input, Message, Tag } from '@arco-design/web-react';
-import { ArrowUp, CloseSmall } from '@icon-park/react';
+import { ArrowUp, CloseSmall, Microphone, VoiceOff } from '@icon-park/react';
 import type { SlashCommandItem } from '@/common/slash/types';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -50,6 +51,7 @@ const SendBox: React.FC<{
   const isMobile = layout?.isMobile ?? false;
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const [isSingleLine, setIsSingleLine] = useState(!defaultMultiLine);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const isInputActive = isInputFocused;
@@ -60,6 +62,7 @@ const SendBox: React.FC<{
   const mobileUserFocusIntentUntilRef = useRef(0);
   const latestInputRef = useLatestRef(input);
   const setInputRef = useLatestRef(setInput);
+  const voiceBaseRef = useRef<string | null>(null);
 
   // 集成预览面板的"添加到聊天"功能 / Integrate preview panel's "Add to chat" functionality
   const { setSendBoxHandler, domSnippets, removeDomSnippet, clearDomSnippets } = usePreviewContext();
@@ -181,6 +184,33 @@ const SendBox: React.FC<{
 
   const [message, context] = Message.useMessage();
 
+  useEffect(() => {
+    const unsubscribe = ipcBridge.speech.transcript.on((event) => {
+      console.log('[speech] renderer transcript', event);
+      if (event.error) {
+        setIsRecording(false);
+        voiceBaseRef.current = null;
+        message.error(event.error);
+        return;
+      }
+      if (!event.text) return;
+      const incoming = event.text.trim();
+      if (!incoming) return;
+
+      const currentBase = voiceBaseRef.current ?? latestInputRef.current.trim();
+      if (event.isFinal) {
+        const committed = currentBase ? `${currentBase} ${incoming}` : incoming;
+        voiceBaseRef.current = committed;
+        setInputRef.current(committed);
+        return;
+      }
+
+      const preview = currentBase ? `${currentBase} ${incoming}` : incoming;
+      setInputRef.current(preview);
+    });
+    return unsubscribe;
+  }, [latestInputRef, message, setInputRef]);
+
   const builtinSlashCommands = useMemo<SlashCommandItem[]>(() => {
     if (!onSlashBuiltinCommand) {
       return [];
@@ -288,6 +318,11 @@ const SendBox: React.FC<{
     if (!input.trim() && domSnippets.length === 0) {
       return;
     }
+    if (isRecording) {
+      void ipcBridge.speech.stopVoiceInput.invoke();
+      setIsRecording(false);
+      voiceBaseRef.current = null;
+    }
     setIsLoading(true);
 
     // 构建消息内容：如果有 DOM 片段，附加完整 HTML / Build message: if has DOM snippets, append full HTML
@@ -318,6 +353,33 @@ const SendBox: React.FC<{
     }
   };
 
+  const toggleVoiceInput = useCallback(async () => {
+    if (isRecording) {
+      console.log('[speech] renderer stop request');
+      await ipcBridge.speech.stopVoiceInput.invoke();
+      setIsRecording(false);
+      voiceBaseRef.current = null;
+      return;
+    }
+    console.log('[speech] renderer start request');
+    const result = await ipcBridge.speech.startVoiceInput.invoke({});
+    console.log('[speech] renderer start result', result);
+    if (!result.success) {
+      message.error(result.msg || t('messages.voiceInputFailed', { defaultValue: 'Voice input failed' }));
+      setIsRecording(false);
+      voiceBaseRef.current = null;
+      return;
+    }
+    voiceBaseRef.current = latestInputRef.current.trim();
+    setIsRecording(true);
+  }, [isRecording, latestInputRef, message, t]);
+
+  useEffect(() => {
+    return () => {
+      void ipcBridge.speech.stopVoiceInput.invoke();
+    };
+  }, []);
+
   // Calculate button disabled state and style
   const isButtonDisabled = disabled || (!input.trim() && domSnippets.length === 0);
   const buttonStyle = {
@@ -337,6 +399,15 @@ const SendBox: React.FC<{
       onClick={() => {
         sendMessageHandler();
       }}
+    />
+  );
+
+  const voiceInputButton = (
+    <Button
+      shape='circle'
+      type={isRecording ? 'primary' : 'secondary'}
+      onClick={toggleVoiceInput}
+      icon={isRecording ? <VoiceOff theme='filled' size='14' fill='currentColor' /> : <Microphone theme='outline' size='14' fill='currentColor' strokeWidth={2} />}
     />
   );
 
@@ -434,6 +505,7 @@ const SendBox: React.FC<{
           {isSingleLine && (
             <div className='flex items-center gap-2'>
               {sendButtonPrefix}
+              {voiceInputButton}
               {isLoading || loading ? <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-6'></div>} onClick={stopHandler}></Button> : sendButton}
             </div>
           )}
@@ -443,6 +515,7 @@ const SendBox: React.FC<{
             <div className={isMobile ? 'sendbox-tools sendbox-tools-scroll-mobile' : 'sendbox-tools'}>{tools}</div>
             <div className='flex items-center gap-2'>
               {sendButtonPrefix}
+              {voiceInputButton}
               {isLoading || loading ? <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-6'></div>} onClick={stopHandler}></Button> : sendButton}
             </div>
           </div>
