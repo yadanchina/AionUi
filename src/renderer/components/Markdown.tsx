@@ -31,6 +31,7 @@ import { useTranslation } from 'react-i18next';
 import { addImportantToAll } from '../utils/customCssProcessor';
 import { convertLatexDelimiters } from '../utils/latexDelimiters';
 import LocalImageView from './LocalImageView';
+import TacticalReasoningCard, { type ReasoningCardData } from './TacticalReasoningCard';
 
 const formatCode = (code: string) => {
   const content = String(code).replace(/\n$/, '');
@@ -76,6 +77,19 @@ const normalizeCodeLanguage = (language?: string): string => {
   if (normalized === 'yml') return 'yaml';
   if (normalized === 'plaintext') return 'text';
   return normalized;
+};
+
+const parseReasoningCard = (content: string): ReasoningCardData | null => {
+  try {
+    const parsed = JSON.parse(content) as ReasoningCardData;
+    if (!parsed || typeof parsed !== 'object') return null;
+    if (!parsed.header || typeof parsed.header.title !== 'string' || typeof parsed.header.des !== 'string') {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
 };
 
 const MermaidBlock: React.FC<{ chart: string }> = ({ chart }) => {
@@ -251,6 +265,18 @@ function CodeBlock(props: any) {
           </div>
         </div>
       );
+    }
+
+    if (language === 'reasoning') {
+      const reasoningData = parseReasoningCard(codeContent);
+
+      if (reasoningData) {
+        return (
+          <div style={{ width: '100%', minWidth: 0, maxWidth: '100%', ...(props.codeStyle || {}) }}>
+            <TacticalReasoningCard data={reasoningData} mermaidRenderer={reasoningData.mermaid ? <MermaidBlock chart={reasoningData.mermaid} /> : undefined} renderMermaid={(chart) => <MermaidBlock chart={chart} />} />
+          </div>
+        );
+      }
     }
 
     // Render latex/math code blocks as KaTeX display math
