@@ -123,7 +123,7 @@ nsis:
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
-  differentialPackage: true
+  differentialPackage: false
 
 mac:
   target:
@@ -163,8 +163,6 @@ linux:
   target:
     - target: deb
       arch: [x64, arm64] # armv7l
-    - target: AppImage
-      arch: [x64, arm64]
   icon: resources/app.png
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   category: Utility
