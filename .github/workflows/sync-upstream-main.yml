@@ -1,0 +1,67 @@
+name: Sync Upstream Main
+
+run-name: >-
+  Sync Upstream Main -> dev
+
+permissions:
+  contents: write
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  sync-upstream:
+    name: Sync upstream/main into dev
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout dev branch
+        uses: actions/checkout@v6
+        with:
+          ref: dev
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream remote
+        shell: bash
+        run: |
+          git remote remove upstream || true
+          git remote add upstream https://github.com/iOfficeAI/AionUi.git
+          git remote -v
+
+      - name: Fetch upstream main
+        shell: bash
+        run: |
+          git fetch upstream main
+
+      - name: Merge upstream main into dev
+        shell: bash
+        run: |
+          git checkout dev
+          git merge --no-edit upstream/main
+
+      - name: Push synced dev branch
+        shell: bash
+        run: |
+          git push origin dev
+
+      - name: Write summary
+        if: always()
+        shell: bash
+        run: |
+          echo "## Upstream Sync" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Key | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-----|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Source | \`iOfficeAI/AionUi:main\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Target | \`${{ github.repository }}:dev\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Trigger | \`${{ github.event_name }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Commit | \`$(git rev-parse --short HEAD)\` |" >> "$GITHUB_STEP_SUMMARY"

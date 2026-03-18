@@ -3,7 +3,7 @@ name: '✓PR Checks'
 on:
   pull_request:
     types: [opened, synchronize, edited]
-    branches: [main, dev]
+    branches: [dev]
     paths-ignore:
       - '**/*.md'
       - 'docs/**'

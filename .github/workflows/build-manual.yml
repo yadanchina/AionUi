@@ -13,7 +13,7 @@ on:
       branch:
         description: 'Git ref to build from (branch, tag, or commit SHA)'
         required: true
-        default: 'main'
+        default: 'dev'
         type: string
       platform:
         description: 'Target platform to build'
