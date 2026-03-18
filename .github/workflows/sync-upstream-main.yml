@@ -1,7 +1,7 @@
-name: Sync Upstream Main
+name: 同步上游 Main
 
 run-name: >-
-  Sync Upstream Main -> dev
+  同步上游 Main -> dev
 
 permissions:
   contents: write
@@ -13,55 +13,55 @@ on:
 
 jobs:
   sync-upstream:
-    name: Sync upstream/main into dev
+    name: 将 upstream/main 同步到 dev
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout dev branch
+      - name: 检出 dev 分支
         uses: actions/checkout@v6
         with:
           ref: dev
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Configure git
+      - name: 配置 Git
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Add upstream remote
+      - name: 添加 upstream 远程仓库
         shell: bash
         run: |
           git remote remove upstream || true
           git remote add upstream https://github.com/iOfficeAI/AionUi.git
           git remote -v
 
-      - name: Fetch upstream main
+      - name: 拉取 upstream main
         shell: bash
         run: |
           git fetch upstream main
 
-      - name: Merge upstream main into dev
+      - name: 将 upstream main 合并到 dev
         shell: bash
         run: |
           git checkout dev
           git merge --no-edit upstream/main
 
-      - name: Push synced dev branch
+      - name: 推送同步后的 dev 分支
         shell: bash
         run: |
           git push origin dev
 
-      - name: Write summary
+      - name: 写入摘要
         if: always()
         shell: bash
         run: |
-          echo "## Upstream Sync" >> "$GITHUB_STEP_SUMMARY"
+          echo "## 上游同步" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Key | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 项目 | 值 |" >> "$GITHUB_STEP_SUMMARY"
           echo "|-----|-------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Source | \`iOfficeAI/AionUi:main\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Target | \`${{ github.repository }}:dev\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Trigger | \`${{ github.event_name }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Commit | \`$(git rev-parse --short HEAD)\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 来源 | \`iOfficeAI/AionUi:main\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 目标 | \`${{ github.repository }}:dev\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 触发方式 | \`${{ github.event_name }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 提交 | \`$(git rev-parse --short HEAD)\` |" >> "$GITHUB_STEP_SUMMARY"

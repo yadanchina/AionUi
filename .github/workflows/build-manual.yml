@@ -1,7 +1,7 @@
-name: Manual Build
+name: 手动构建
 
 run-name: >-
-  Manual Build / ${{ inputs.platform }} / ${{ inputs.branch }}
+  手动构建 / ${{ inputs.platform }} / ${{ inputs.branch }}
 
 permissions:
   contents: write
@@ -11,12 +11,12 @@ on:
   workflow_dispatch:
     inputs:
       branch:
-        description: 'Git ref to build from (branch, tag, or commit SHA)'
+        description: '要构建的 Git 引用（分支、标签或提交 SHA）'
         required: true
         default: 'dev'
         type: string
       platform:
-        description: 'Target platform to build'
+        description: '要构建的目标平台'
         required: true
         type: choice
         options:
@@ -28,7 +28,7 @@ on:
           - all
         default: 'macos-arm64'
       skip_code_quality:
-        description: 'Skip lint, typecheck, and tests before building'
+        description: '构建前跳过 lint、类型检查和测试'
         required: false
         type: boolean
         default: false
@@ -38,13 +38,13 @@ env:
 
 jobs:
   prepare-matrix:
-    name: Prepare Build Matrix
+    name: 准备构建矩阵
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
 
     steps:
-      - name: Generate build matrix
+      - name: 生成构建矩阵
         id: set-matrix
         shell: bash
         run: |
@@ -77,19 +77,19 @@ jobs:
           echo "Generated matrix for platform '$PLATFORM':"
           echo "$MATRIX" | python3 -m json.tool
 
-      - name: Write summary
+      - name: 写入摘要
         shell: bash
         run: |
-          echo "## Manual Build Request" >> "$GITHUB_STEP_SUMMARY"
+          echo "## 手动构建请求" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Key | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 项目 | 值 |" >> "$GITHUB_STEP_SUMMARY"
           echo "|-----|-------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Ref | \`${{ inputs.branch }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Platform | \`${{ inputs.platform }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Skip Code Quality | \`${{ inputs.skip_code_quality }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 引用 | \`${{ inputs.branch }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 平台 | \`${{ inputs.platform }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 跳过代码质量检查 | \`${{ inputs.skip_code_quality }}\` |" >> "$GITHUB_STEP_SUMMARY"
 
   build-pipeline:
-    name: Run Manual Build
+    name: 执行手动构建
     needs: prepare-matrix
     uses: ./.github/workflows/_build-reusable.yml
     with:
