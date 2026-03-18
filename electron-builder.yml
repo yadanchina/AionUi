@@ -106,6 +106,10 @@ extraResources:
     to: vosk-model
   - from: scripts/voice
     to: voice
+  - from: resources/app.png
+    to: app.png
+  - from: resources/bundled-bun
+    to: bundled-bun
 
 win:
   target:

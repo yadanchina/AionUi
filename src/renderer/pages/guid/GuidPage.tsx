@@ -18,6 +18,7 @@ import GuidModelSelector from './components/GuidModelSelector';
 import MentionDropdown from './components/MentionDropdown';
 import MentionSelectorBadge from './components/MentionSelectorBadge';
 import QuickActionButtons from './components/QuickActionButtons';
+import SkillsMarketBanner from './components/SkillsMarketBanner';
 import { useGuidAgentSelection } from './hooks/useGuidAgentSelection';
 import { useGuidInput } from './hooks/useGuidInput';
 import { useGuidMention } from './hooks/useGuidMention';
@@ -162,7 +163,10 @@ const GuidPage: React.FC = () => {
 
   const handleInputKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
-      if ((mention.mentionOpen || mention.mentionSelectorOpen) && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+      if (
+        (mention.mentionOpen || mention.mentionSelectorOpen) &&
+        (event.key === 'ArrowDown' || event.key === 'ArrowUp')
+      ) {
         event.preventDefault();
         if (mention.filteredMentionOptions.length === 0) return;
         mention.setMentionActiveIndex((prev) => {
@@ -177,8 +181,15 @@ const GuidPage: React.FC = () => {
         event.preventDefault();
         if (mention.filteredMentionOptions.length > 0) {
           const query = mention.mentionQuery?.toLowerCase();
-          const exactMatch = query ? mention.filteredMentionOptions.find((option) => option.label.toLowerCase() === query || option.tokens.has(query)) : undefined;
-          const selected = exactMatch || mention.filteredMentionOptions[mention.mentionActiveIndex] || mention.filteredMentionOptions[0];
+          const exactMatch = query
+            ? mention.filteredMentionOptions.find(
+                (option) => option.label.toLowerCase() === query || option.tokens.has(query)
+              )
+            : undefined;
+          const selected =
+            exactMatch ||
+            mention.filteredMentionOptions[mention.mentionActiveIndex] ||
+            mention.filteredMentionOptions[0];
           if (selected) {
             mention.selectMentionAgent(selected.key);
             return;
@@ -196,7 +207,12 @@ const GuidPage: React.FC = () => {
         mention.setMentionActiveIndex(0);
         return;
       }
-      if (!mention.mentionOpen && mention.mentionSelectorVisible && !guidInput.input.trim() && (event.key === 'Backspace' || event.key === 'Delete')) {
+      if (
+        !mention.mentionOpen &&
+        mention.mentionSelectorVisible &&
+        !guidInput.input.trim() &&
+        (event.key === 'Backspace' || event.key === 'Delete')
+      ) {
         event.preventDefault();
         mention.setMentionSelectorVisible(false);
         mention.setMentionSelectorOpen(false);
@@ -254,7 +270,13 @@ const GuidPage: React.FC = () => {
       mention.setMentionSelectorOpen(false);
       mention.setMentionActiveIndex(0);
     },
-    [agentSelection.setSelectedAgentKey, mention.setMentionOpen, mention.setMentionQuery, mention.setMentionSelectorOpen, mention.setMentionActiveIndex]
+    [
+      agentSelection.setSelectedAgentKey,
+      mention.setMentionOpen,
+      mention.setMentionQuery,
+      mention.setMentionSelectorOpen,
+      mention.setMentionActiveIndex,
+    ]
   );
 
   const handleSelectAssistant = useCallback(
@@ -265,20 +287,48 @@ const GuidPage: React.FC = () => {
       mention.setMentionSelectorOpen(false);
       mention.setMentionActiveIndex(0);
     },
-    [agentSelection.setSelectedAgentKey, mention.setMentionOpen, mention.setMentionQuery, mention.setMentionSelectorOpen, mention.setMentionActiveIndex]
+    [
+      agentSelection.setSelectedAgentKey,
+      mention.setMentionOpen,
+      mention.setMentionQuery,
+      mention.setMentionSelectorOpen,
+      mention.setMentionActiveIndex,
+    ]
   );
 
   // Typewriter placeholder
   const typewriterPlaceholder = useTypewriterPlaceholder(t('conversation.welcome.placeholder'));
 
   // Determine if model selector should be in Gemini mode
-  const isGeminiMode = (agentSelection.selectedAgent === 'gemini' && !agentSelection.isPresetAgent) || (agentSelection.isPresetAgent && agentSelection.currentEffectiveAgentInfo.agentType === 'gemini' && agentSelection.currentEffectiveAgentInfo.isAvailable);
+  const isGeminiMode =
+    (agentSelection.selectedAgent === 'gemini' && !agentSelection.isPresetAgent) ||
+    (agentSelection.isPresetAgent &&
+      agentSelection.currentEffectiveAgentInfo.agentType === 'gemini' &&
+      agentSelection.currentEffectiveAgentInfo.isAvailable);
 
   // Build the mention dropdown node
-  const mentionDropdownNode = <MentionDropdown menuRef={mention.mentionMenuRef} options={mention.filteredMentionOptions} selectedKey={mention.mentionMenuSelectedKey} onSelect={mention.selectMentionAgent} />;
+  const mentionDropdownNode = (
+    <MentionDropdown
+      menuRef={mention.mentionMenuRef}
+      options={mention.filteredMentionOptions}
+      selectedKey={mention.mentionMenuSelectedKey}
+      onSelect={mention.selectMentionAgent}
+    />
+  );
 
   // Build the model selector node
-  const modelSelectorNode = <GuidModelSelector isGeminiMode={isGeminiMode} modelList={modelSelection.modelList} currentModel={modelSelection.currentModel} setCurrentModel={modelSelection.setCurrentModel} geminiModeLookup={modelSelection.geminiModeLookup} currentAcpCachedModelInfo={agentSelection.currentAcpCachedModelInfo} selectedAcpModel={agentSelection.selectedAcpModel} setSelectedAcpModel={agentSelection.setSelectedAcpModel} />;
+  const modelSelectorNode = (
+    <GuidModelSelector
+      isGeminiMode={isGeminiMode}
+      modelList={modelSelection.modelList}
+      currentModel={modelSelection.currentModel}
+      setCurrentModel={modelSelection.setCurrentModel}
+      geminiModeLookup={modelSelection.geminiModeLookup}
+      currentAcpCachedModelInfo={agentSelection.currentAcpCachedModelInfo}
+      selectedAcpModel={agentSelection.selectedAcpModel}
+      setSelectedAcpModel={agentSelection.setSelectedAcpModel}
+    />
+  );
 
   // Build the action row
   const actionRowNode = (
@@ -319,11 +369,20 @@ const GuidPage: React.FC = () => {
   return (
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
       <div ref={guidContainerRef} className={styles.guidContainer}>
-        {messageContext}
+        <SkillsMarketBanner />
         <div className={styles.guidLayout}>
           <p className='text-2xl font-semibold mb-6 text-0 text-center'>{t('conversation.welcome.title')}</p>
 
-          {agentSelection.availableAgents === undefined ? <AgentPillBarSkeleton /> : agentSelection.availableAgents.length > 0 ? <AgentPillBar availableAgents={agentSelection.availableAgents} selectedAgentKey={agentSelection.selectedAgentKey} getAgentKey={agentSelection.getAgentKey} onSelectAgent={handleSelectAgentFromPillBar} /> : null}
+          {agentSelection.availableAgents === undefined ? (
+            <AgentPillBarSkeleton />
+          ) : agentSelection.availableAgents.length > 0 ? (
+            <AgentPillBar
+              availableAgents={agentSelection.availableAgents}
+              selectedAgentKey={agentSelection.selectedAgentKey}
+              getAgentKey={agentSelection.getAgentKey}
+              onSelectAgent={handleSelectAgentFromPillBar}
+            />
+          ) : null}
 
           <GuidInputCard
             input={guidInput.input}
@@ -340,7 +399,16 @@ const GuidPage: React.FC = () => {
             activeShadow={activeShadow}
             dragHandlers={guidInput.dragHandlers}
             mentionOpen={mention.mentionOpen}
-            mentionSelectorBadge={<MentionSelectorBadge visible={mention.mentionSelectorVisible} open={mention.mentionSelectorOpen} onOpenChange={mention.setMentionSelectorOpen} agentLabel={mention.selectedAgentLabel} mentionMenu={mentionDropdownNode} onResetQuery={() => mention.setMentionQuery(null)} />}
+            mentionSelectorBadge={
+              <MentionSelectorBadge
+                visible={mention.mentionSelectorVisible}
+                open={mention.mentionSelectorOpen}
+                onOpenChange={mention.setMentionSelectorOpen}
+                agentLabel={mention.selectedAgentLabel}
+                mentionMenu={mentionDropdownNode}
+                onResetQuery={() => mention.setMentionQuery(null)}
+              />
+            }
             mentionDropdown={mentionDropdownNode}
             files={guidInput.files}
             onRemoveFile={guidInput.handleRemoveFile}
@@ -349,10 +417,27 @@ const GuidPage: React.FC = () => {
             actionRow={actionRowNode}
           />
 
-          {agentSelection.availableAgents === undefined ? <AssistantsSkeleton /> : <AssistantSelectionArea isPresetAgent={agentSelection.isPresetAgent} selectedAgentInfo={agentSelection.selectedAgentInfo} customAgents={agentSelection.customAgents} localeKey={localeKey} currentEffectiveAgentInfo={agentSelection.currentEffectiveAgentInfo} onSelectAssistant={handleSelectAssistant} onSetInput={guidInput.setInput} onFocusInput={guidInput.handleTextareaFocus} />}
+          {agentSelection.availableAgents === undefined ? (
+            <AssistantsSkeleton />
+          ) : (
+            <AssistantSelectionArea
+              isPresetAgent={agentSelection.isPresetAgent}
+              selectedAgentInfo={agentSelection.selectedAgentInfo}
+              customAgents={agentSelection.customAgents}
+              localeKey={localeKey}
+              currentEffectiveAgentInfo={agentSelection.currentEffectiveAgentInfo}
+              onSelectAssistant={handleSelectAssistant}
+              onSetInput={guidInput.setInput}
+              onFocusInput={guidInput.handleTextareaFocus}
+            />
+          )}
         </div>
 
-        <QuickActionButtons onOpenLink={openLink} inactiveBorderColor={inactiveBorderColor} activeShadow={activeShadow} />
+        <QuickActionButtons
+          onOpenLink={openLink}
+          inactiveBorderColor={inactiveBorderColor}
+          activeShadow={activeShadow}
+        />
       </div>
     </ConfigProvider>
   );

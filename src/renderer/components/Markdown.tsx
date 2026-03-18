@@ -225,7 +225,14 @@ function CodeBlock(props: any) {
   };
 
   return useMemo(() => {
-    const { children, className, node: _node, hiddenCodeCopyButton, codeStyle: _codeStyle, ...rest } = props;
+    const {
+      children,
+      className,
+      node: _node,
+      hiddenCodeCopyButton: _hiddenCodeCopyButton,
+      codeStyle: _codeStyle,
+      ...rest
+    } = props;
     const match = /language-(\w+)/.exec(className || '');
     const language = normalizeCodeLanguage(match?.[1]);
     const codeTheme = currentTheme === 'dark' ? vs2015 : vs;
@@ -343,7 +350,23 @@ function CodeBlock(props: any) {
                 />
               )}
               {/* 折叠/展开按钮 / Fold/unfold button */}
-              {logicRender(!fold, <Up theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => toggleFold(true)} />, <Down theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => toggleFold(false)} />)}
+              {logicRender(
+                !fold,
+                <Up
+                  theme='outline'
+                  size='20'
+                  style={{ cursor: 'pointer' }}
+                  fill='var(--text-secondary)'
+                  onClick={() => setFlow(true)}
+                />,
+                <Down
+                  theme='outline'
+                  size='20'
+                  style={{ cursor: 'pointer' }}
+                  fill='var(--text-secondary)'
+                  onClick={() => setFlow(false)}
+                />
+              )}
             </div>
           </div>
           {logicRender(
@@ -358,7 +381,10 @@ function CodeBlock(props: any) {
                 lineProps={
                   isDiff
                     ? (lineNumber: number) => ({
-                        style: { display: 'block', ...getDiffLineStyle(diffLines[lineNumber - 1] || '', currentTheme === 'dark') },
+                        style: {
+                          display: 'block',
+                          ...getDiffLineStyle(diffLines[lineNumber - 1] || '', currentTheme === 'dark'),
+                        },
                       })
                     : undefined
                 }
@@ -381,8 +407,26 @@ function CodeBlock(props: any) {
                   },
                 }}
               />
-              <div className='code-block-footer'>
-                <Up theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => toggleFold(true)} title={t('common.collapse', '收起')} />
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  alignItems: 'center',
+                  backgroundColor: 'var(--bg-2)',
+                  borderBottomLeftRadius: '0.3rem',
+                  borderBottomRightRadius: '0.3rem',
+                  padding: '6px 10px',
+                  borderTop: '1px solid var(--bg-3)',
+                }}
+              >
+                <Up
+                  theme='outline'
+                  size='20'
+                  style={{ cursor: 'pointer' }}
+                  fill='var(--text-secondary)'
+                  onClick={() => setFlow(true)}
+                  title={t('common.collapse', '收起')}
+                />
               </div>
             </>
           )}
@@ -600,7 +644,9 @@ const getKatexStyleSheet = (): CSSStyleSheet | null => {
 
   try {
     // Find the KaTeX stylesheet in the document
-    const katexSheet = [...document.styleSheets].find((sheet) => sheet.href?.includes('katex') || (sheet.ownerNode as HTMLElement)?.dataset?.katex);
+    const katexSheet = [...document.styleSheets].find(
+      (sheet) => sheet.href?.includes('katex') || (sheet.ownerNode as HTMLElement)?.dataset?.katex
+    );
 
     if (katexSheet) {
       const cssRules = [...katexSheet.cssRules].map((rule) => rule.cssText).join('\n');
@@ -758,7 +804,14 @@ interface MarkdownViewProps {
   allowHtml?: boolean;
 }
 
-const MarkdownView: React.FC<MarkdownViewProps> = ({ hiddenCodeCopyButton, codeStyle, className, onRef, allowHtml, children: childrenProp }) => {
+const MarkdownView: React.FC<MarkdownViewProps> = ({
+  hiddenCodeCopyButton,
+  codeStyle,
+  className,
+  onRef,
+  allowHtml,
+  children: childrenProp,
+}) => {
   const { t } = useTranslation();
 
   const normalizedChildren = useMemo(() => {
