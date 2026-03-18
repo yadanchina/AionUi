@@ -1,5 +1,10 @@
 {
   "name": "AionUi",
+  "homepage": "https://aionui.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yadanchina/AionUi.git"
+  },
   "productName": "AionUi",
   "version": "1.8.27",
   "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
@@ -179,8 +184,6 @@
     "tiny-csrf": "^1.1.6",
     "turndown": "^7.2.2",
     "turndown-plugin-gfm": "^1.0.2",
-    "vosk": "^0.3.39",
-    "vosk-koffi": "^1.1.1",
     "web-tree-sitter": "^0.25.10",
     "ws": "^8.18.3",
     "xlsx-republish": "^0.20.3",

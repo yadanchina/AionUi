@@ -1,4 +1,7 @@
-name: '🔨 Manual Build'
+name: Manual Build
+
+run-name: >-
+  Manual Build / ${{ inputs.platform }} / ${{ inputs.branch }}
 
 permissions:
   contents: write
@@ -8,12 +11,12 @@ on:
   workflow_dispatch:
     inputs:
       branch:
-        description: 'Branch to build from'
+        description: 'Git ref to build from (branch, tag, or commit SHA)'
         required: true
         default: 'main'
         type: string
       platform:
-        description: 'Platform to build'
+        description: 'Target platform to build'
         required: true
         type: choice
         options:
@@ -25,7 +28,7 @@ on:
           - all
         default: 'macos-arm64'
       skip_code_quality:
-        description: 'Skip code quality checks (faster builds for debugging)'
+        description: 'Skip lint, typecheck, and tests before building'
         required: false
         type: boolean
         default: false
@@ -65,13 +68,28 @@ jobs:
             MATRIX="{\"include\":[$WINDOWS_ARM64]}"
           elif [ "$PLATFORM" = "linux" ]; then
             MATRIX="{\"include\":[$LINUX]}"
+          else
+            echo "Unsupported platform: $PLATFORM"
+            exit 1
           fi
 
-          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
           echo "Generated matrix for platform '$PLATFORM':"
           echo "$MATRIX" | python3 -m json.tool
 
+      - name: Write summary
+        shell: bash
+        run: |
+          echo "## Manual Build Request" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Key | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-----|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Ref | \`${{ inputs.branch }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Platform | \`${{ inputs.platform }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Skip Code Quality | \`${{ inputs.skip_code_quality }}\` |" >> "$GITHUB_STEP_SUMMARY"
+
   build-pipeline:
+    name: Run Manual Build
     needs: prepare-matrix
     uses: ./.github/workflows/_build-reusable.yml
     with:

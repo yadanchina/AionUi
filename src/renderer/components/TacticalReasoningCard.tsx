@@ -27,7 +27,6 @@ type ReasoningEdge = {
 };
 
 export type ReasoningCardData = {
-  theme?: string;
   header: {
     title: string;
     des: string;
@@ -40,7 +39,6 @@ export type ReasoningCardData = {
     edges?: ReasoningEdge[];
   };
   mermaid?: string;
-  children?: ReasoningCardData[];
 };
 
 type TacticalReasoningCardProps = {
@@ -116,11 +114,6 @@ const THEME_MAP: Record<string, ThemePalette> = {
 };
 
 const DEFAULT_THEME = THEME_MAP.blue;
-
-const resolveTheme = (theme?: string): ThemePalette => {
-  if (!theme) return DEFAULT_THEME;
-  return THEME_MAP[theme] || DEFAULT_THEME;
-};
 
 type LayoutNode = ReasoningNode & {
   id: string;
@@ -478,20 +471,16 @@ const GraphViz: React.FC<{ nodes: ReasoningNode[]; edges: ReasoningEdge[]; palet
   );
 };
 
-const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({ data, mermaidRenderer, renderMermaid, depth = 0, collapseSignal }) => {
+const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({ data, mermaidRenderer, depth = 0, collapseSignal }) => {
   const collapseSignalRef = useRef<number | undefined>(collapseSignal);
   const [showMetrics, setShowMetrics] = useState(true);
   const [showTopology, setShowTopology] = useState(true);
-  const [showChildren, setShowChildren] = useState(true);
-  const [childCollapseVersion, setChildCollapseVersion] = useState(0);
-  const palette = resolveTheme(data.theme);
+  const palette = DEFAULT_THEME;
   const metrics = data.content?.items || [];
   const graphNodes = data.graph?.nodes || [];
   const graphEdges = data.graph?.edges || [];
-  const childCards = data.children || [];
   const hasMetrics = metrics.length > 0;
   const hasGraph = graphNodes.length > 0 || graphEdges.length > 0 || Boolean(data.mermaid);
-  const hasChildren = childCards.length > 0;
 
   const handleMetricsToggle = () => {
     setShowMetrics((value) => {
@@ -503,21 +492,11 @@ const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({ data, mer
     });
   };
 
-  const handleChildrenToggle = () => {
-    setShowChildren((value) => {
-      const nextValue = !value;
-      if (!nextValue) {
-        setChildCollapseVersion((version) => version + 1);
-      }
-      return nextValue;
-    });
-  };
-
   useEffect(() => {
     if (collapseSignal === undefined || collapseSignalRef.current === collapseSignal) return;
     collapseSignalRef.current = collapseSignal;
-    setShowChildren(false);
-    setChildCollapseVersion((version) => version + 1);
+    setShowMetrics(false);
+    setShowTopology(false);
   }, [collapseSignal]);
 
   const shellStyle: React.CSSProperties = {
@@ -546,12 +525,6 @@ const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({ data, mer
     fontWeight: 700,
     padding: '6px 10px',
     cursor: 'pointer',
-  };
-
-  const childRailStyle: React.CSSProperties = {
-    marginTop: 12,
-    paddingLeft: depth > 0 ? 12 : 16,
-    borderLeft: `2px solid ${palette.border}`,
   };
 
   return (
@@ -608,11 +581,6 @@ const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({ data, mer
                 {showMetrics ? 'Hide Tactical Metrics' : 'Show Tactical Metrics'}
               </button>
             ) : null}
-            {hasChildren ? (
-              <button type='button' style={toggleButtonStyle} onClick={handleChildrenToggle}>
-                {showChildren ? 'Hide Child Cards' : 'Show Child Cards'}
-              </button>
-            ) : null}
           </div>
         </div>
 
@@ -660,16 +628,6 @@ const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({ data, mer
               }}
             >
               {data.mermaid ? mermaidRenderer : <GraphViz nodes={graphNodes} edges={graphEdges} palette={palette} />}
-            </div>
-          </div>
-        ) : null}
-
-        {hasChildren ? (
-          <div style={{ ...sectionStyle, display: showChildren ? 'block' : 'none' }}>
-            <div style={childRailStyle}>
-              {childCards.map((child, index) => (
-                <TacticalReasoningCard key={`${child.header.title}-${index}`} data={child} mermaidRenderer={child.mermaid ? renderMermaid?.(child.mermaid) : undefined} renderMermaid={renderMermaid} depth={depth + 1} collapseSignal={childCollapseVersion} />
-              ))}
             </div>
           </div>
         ) : null}
