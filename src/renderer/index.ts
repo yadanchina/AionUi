@@ -6,8 +6,6 @@
 
 import * as Sentry from '@sentry/electron/renderer';
 
-Sentry.init();
-
 import './bootstrap/runtimePatches';
 import type { PropsWithChildren } from 'react';
 import React from 'react';
@@ -35,6 +33,12 @@ import './arco-override.css';
 import './i18n';
 import './styles/themes/index.css';
 import HOC from './utils/HOC';
+import { isElectronDesktop } from './utils/platform';
+
+if (isElectronDesktop()) {
+  Sentry.init();
+}
+
 const root = createRoot(document.getElementById('root'));
 
 // Patch Korean locale with missing properties from English locale
