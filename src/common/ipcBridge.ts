@@ -29,7 +29,10 @@ export const shell = {
 };
 
 export const speech = {
-  startVoiceInput: bridge.buildProvider<IBridgeResponse<{ running: boolean; modelPath?: string }>, { modelPath?: string }>('speech.start-voice-input'),
+  startVoiceInput: bridge.buildProvider<
+    IBridgeResponse<{ running: boolean; modelPath?: string }>,
+    { modelPath?: string }
+  >('speech.start-voice-input'),
   stopVoiceInput: bridge.buildProvider<IBridgeResponse<{ running: boolean }>, void>('speech.stop-voice-input'),
   transcript: bridge.buildEmitter<{ text?: string; isFinal?: boolean; error?: string }>('speech.transcript'),
 };

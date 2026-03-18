@@ -423,7 +423,20 @@ const SendBox: React.FC<{
     />
   );
 
-  const voiceInputButton = <Button shape='circle' type={isRecording ? 'primary' : 'secondary'} onClick={toggleVoiceInput} icon={isRecording ? <VoiceOff theme='filled' size='14' fill='currentColor' /> : <Microphone theme='outline' size='14' fill='currentColor' strokeWidth={2} />} />;
+  const voiceInputButton = (
+    <Button
+      shape='circle'
+      type={isRecording ? 'primary' : 'secondary'}
+      onClick={toggleVoiceInput}
+      icon={
+        isRecording ? (
+          <VoiceOff theme='filled' size='14' fill='currentColor' />
+        ) : (
+          <Microphone theme='outline' size='14' fill='currentColor' strokeWidth={2} />
+        )
+      }
+    />
+  );
 
   return (
     <div className={className}>

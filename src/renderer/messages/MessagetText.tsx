@@ -144,7 +144,11 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   const handleSpeak = () => {
     const speech = window.speechSynthesis;
     if (!speech) {
-      Message.error(t('messages.voicePlaybackNotSupported', { defaultValue: 'Voice playback is not supported in current environment' }));
+      Message.error(
+        t('messages.voicePlaybackNotSupported', {
+          defaultValue: 'Voice playback is not supported in current environment',
+        })
+      );
       return;
     }
 
@@ -160,7 +164,9 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
 
     void waitForVoices().then((voices) => {
       const preferredLang = navigator.language || 'en-US';
-      const matchedVoice = voices.find((voice) => voice.lang.toLowerCase().startsWith(preferredLang.toLowerCase().split('-')[0]));
+      const matchedVoice = voices.find((voice) =>
+        voice.lang.toLowerCase().startsWith(preferredLang.toLowerCase().split('-')[0])
+      );
 
       utterancesRef.current = chunks.map((chunk) => {
         const utterance = new SpeechSynthesisUtterance(chunk);
@@ -220,9 +226,23 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   );
 
   const speakButton = (
-    <Tooltip content={isSpeaking ? t('messages.stopSpeaking', { defaultValue: 'Stop speaking' }) : t('messages.speak', { defaultValue: 'Speak' })}>
-      <div className='p-4px rd-4px cursor-pointer hover:bg-3 transition-colors opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto text-t-secondary' onClick={handleSpeak} style={{ lineHeight: 0 }}>
-        {isSpeaking ? <VolumeMute theme='outline' size='14' fill='currentColor' /> : <VolumeNotice theme='outline' size='14' fill='currentColor' />}
+    <Tooltip
+      content={
+        isSpeaking
+          ? t('messages.stopSpeaking', { defaultValue: 'Stop speaking' })
+          : t('messages.speak', { defaultValue: 'Speak' })
+      }
+    >
+      <div
+        className='p-4px rd-4px cursor-pointer hover:bg-3 transition-colors opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto text-t-secondary'
+        onClick={handleSpeak}
+        style={{ lineHeight: 0 }}
+      >
+        {isSpeaking ? (
+          <VolumeMute theme='outline' size='14' fill='currentColor' />
+        ) : (
+          <VolumeNotice theme='outline' size='14' fill='currentColor' />
+        )}
       </div>
     </Tooltip>
   );

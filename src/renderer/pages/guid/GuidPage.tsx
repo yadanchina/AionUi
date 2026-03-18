@@ -360,7 +360,13 @@ const GuidPage: React.FC = () => {
           onClick={() => {
             void toggleVoiceInput();
           }}
-          icon={isRecording ? <VoiceOff theme='filled' size='14' fill='currentColor' /> : <Microphone theme='outline' size='14' fill='currentColor' strokeWidth={2} />}
+          icon={
+            isRecording ? (
+              <VoiceOff theme='filled' size='14' fill='currentColor' />
+            ) : (
+              <Microphone theme='outline' size='14' fill='currentColor' strokeWidth={2} />
+            )
+          }
         />
       }
     />

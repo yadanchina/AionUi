@@ -158,7 +158,15 @@ const MermaidBlock: React.FC<{ chart: string }> = ({ chart }) => {
     );
   }
 
-  return <div className='mermaid-block'>{svg ? <div className='mermaid-diagram' dangerouslySetInnerHTML={{ __html: svg }} /> : <div className='mermaid-loading'>{t('common.loading', 'Loading...')}</div>}</div>;
+  return (
+    <div className='mermaid-block'>
+      {svg ? (
+        <div className='mermaid-diagram' dangerouslySetInnerHTML={{ __html: svg }} />
+      ) : (
+        <div className='mermaid-loading'>{t('common.loading', 'Loading...')}</div>
+      )}
+    </div>
+  );
 };
 
 function CodeBlock(props: any) {
@@ -225,14 +233,7 @@ function CodeBlock(props: any) {
   };
 
   return useMemo(() => {
-    const {
-      children,
-      className,
-      node: _node,
-      hiddenCodeCopyButton: _hiddenCodeCopyButton,
-      codeStyle: _codeStyle,
-      ...rest
-    } = props;
+    const { children, className, node: _node, hiddenCodeCopyButton, codeStyle: _codeStyle, ...rest } = props;
     const match = /language-(\w+)/.exec(className || '');
     const language = normalizeCodeLanguage(match?.[1]);
     const codeTheme = currentTheme === 'dark' ? vs2015 : vs;
@@ -280,7 +281,11 @@ function CodeBlock(props: any) {
       if (reasoningData) {
         return (
           <div style={{ width: '100%', minWidth: 0, maxWidth: '100%', ...(props.codeStyle || {}) }}>
-            <TacticalReasoningCard data={reasoningData} mermaidRenderer={reasoningData.mermaid ? <MermaidBlock chart={reasoningData.mermaid} /> : undefined} renderMermaid={(chart) => <MermaidBlock chart={chart} />} />
+            <TacticalReasoningCard
+              data={reasoningData}
+              mermaidRenderer={reasoningData.mermaid ? <MermaidBlock chart={reasoningData.mermaid} /> : undefined}
+              renderMermaid={(chart) => <MermaidBlock chart={chart} />}
+            />
           </div>
         );
       }

@@ -61,10 +61,16 @@ class VoiceInputService {
     }
 
     const isWindows = process.platform === 'win32';
-    const pythonRelativeCandidates = isWindows ? ['python/python.exe', 'python.exe'] : ['python/bin/python3', 'python/bin/python', 'python3', 'python'];
+    const pythonRelativeCandidates = isWindows
+      ? ['python/python.exe', 'python.exe']
+      : ['python/bin/python3', 'python/bin/python', 'python3', 'python'];
 
-    const runtimeRoots = app.isPackaged ? [process.resourcesPath] : [path.join(process.cwd(), 'resources'), process.resourcesPath];
-    const absoluteCandidates = runtimeRoots.flatMap((root) => pythonRelativeCandidates.map((relativePath) => path.join(root, relativePath)));
+    const runtimeRoots = app.isPackaged
+      ? [process.resourcesPath]
+      : [path.join(process.cwd(), 'resources'), process.resourcesPath];
+    const absoluteCandidates = runtimeRoots.flatMap((root) =>
+      pythonRelativeCandidates.map((relativePath) => path.join(root, relativePath))
+    );
     const embeddedPython = this.findFirstExistingPath(absoluteCandidates);
     if (embeddedPython) {
       return embeddedPython;
@@ -75,7 +81,9 @@ class VoiceInputService {
 
   private resolveScriptPath(): string {
     const scriptRelativePath = path.join('voice', 'vosk_stt.py');
-    const candidates = app.isPackaged ? [path.join(process.resourcesPath, scriptRelativePath)] : [path.join(process.cwd(), 'scripts', scriptRelativePath), path.join(process.resourcesPath, scriptRelativePath)];
+    const candidates = app.isPackaged
+      ? [path.join(process.resourcesPath, scriptRelativePath)]
+      : [path.join(process.cwd(), 'scripts', scriptRelativePath), path.join(process.resourcesPath, scriptRelativePath)];
 
     const scriptPath = this.findFirstExistingPath(candidates);
     if (scriptPath) {
@@ -86,7 +94,15 @@ class VoiceInputService {
   }
 
   private resolveModelPath(explicitPath?: string): string {
-    const candidates = [explicitPath, process.env.AIONUI_VOSK_MODEL_PATH, app.isPackaged ? path.join(process.resourcesPath, 'vosk-model') : path.join(process.cwd(), 'resources', 'vosk-model'), path.join(app.getPath('userData'), 'models', 'vosk-model'), path.join(process.cwd(), 'models', 'vosk-model')].filter(Boolean) as string[];
+    const candidates = [
+      explicitPath,
+      process.env.AIONUI_VOSK_MODEL_PATH,
+      app.isPackaged
+        ? path.join(process.resourcesPath, 'vosk-model')
+        : path.join(process.cwd(), 'resources', 'vosk-model'),
+      path.join(app.getPath('userData'), 'models', 'vosk-model'),
+      path.join(process.cwd(), 'models', 'vosk-model'),
+    ].filter(Boolean) as string[];
 
     for (const candidate of candidates) {
       const resolved = this.normalizeModelRoot(candidate);

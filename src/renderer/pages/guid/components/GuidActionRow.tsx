@@ -64,6 +64,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   loading,
   isButtonDisabled,
   onSend,
+  voiceInputButton,
 }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();

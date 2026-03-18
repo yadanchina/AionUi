@@ -205,7 +205,11 @@ const buildGraphLayout = (nodes: ReasoningNode[], edges: ReasoningEdge[]) => {
   };
 };
 
-const GraphViz: React.FC<{ nodes: ReasoningNode[]; edges: ReasoningEdge[]; palette: ThemePalette }> = ({ nodes, edges, palette }) => {
+const GraphViz: React.FC<{ nodes: ReasoningNode[]; edges: ReasoningEdge[]; palette: ThemePalette }> = ({
+  nodes,
+  edges,
+  palette,
+}) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const zoomBehaviorRef = useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   const markerId = useId().replace(/:/g, '-');
@@ -253,7 +257,18 @@ const GraphViz: React.FC<{ nodes: ReasoningNode[]; edges: ReasoningEdge[]; palet
     svg.style('cursor', 'grab');
 
     const defs = svg.append('defs');
-    defs.append('marker').attr('id', markerId).attr('viewBox', '0 0 10 10').attr('refX', 9).attr('refY', 5).attr('markerWidth', 6).attr('markerHeight', 6).attr('orient', 'auto-start-reverse').append('path').attr('d', 'M 0 0 L 10 5 L 0 10 z').attr('fill', palette.accent);
+    defs
+      .append('marker')
+      .attr('id', markerId)
+      .attr('viewBox', '0 0 10 10')
+      .attr('refX', 9)
+      .attr('refY', 5)
+      .attr('markerWidth', 6)
+      .attr('markerHeight', 6)
+      .attr('orient', 'auto-start-reverse')
+      .append('path')
+      .attr('d', 'M 0 0 L 10 5 L 0 10 z')
+      .attr('fill', palette.accent);
 
     const viewport = svg.append('g').attr('data-layer', 'viewport');
     const edgeLayer = viewport.append('g').attr('data-layer', 'edges');
@@ -466,12 +481,21 @@ const GraphViz: React.FC<{ nodes: ReasoningNode[]; edges: ReasoningEdge[]; palet
           +
         </button>
       </div>
-      <svg ref={svgRef} viewBox='0 0 640 300' style={{ width: '100%', minWidth: 520, height: 300, display: 'block', touchAction: 'none' }} />
+      <svg
+        ref={svgRef}
+        viewBox='0 0 640 300'
+        style={{ width: '100%', minWidth: 520, height: 300, display: 'block', touchAction: 'none' }}
+      />
     </div>
   );
 };
 
-const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({ data, mermaidRenderer, depth = 0, collapseSignal }) => {
+const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({
+  data,
+  mermaidRenderer,
+  depth = 0,
+  collapseSignal,
+}) => {
   const collapseSignalRef = useRef<number | undefined>(collapseSignal);
   const [showMetrics, setShowMetrics] = useState(true);
   const [showTopology, setShowTopology] = useState(true);
@@ -503,7 +527,10 @@ const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({ data, mer
     borderRadius: depth > 0 ? 14 : 16,
     border: `1px solid ${palette.border}`,
     background: palette.panel,
-    boxShadow: depth > 0 ? `inset 0 1px 0 ${palette.accentMuted}, 0 6px 18px rgba(15, 23, 42, 0.06)` : `inset 0 1px 0 ${palette.accentMuted}, 0 10px 28px rgba(15, 23, 42, 0.08)`,
+    boxShadow:
+      depth > 0
+        ? `inset 0 1px 0 ${palette.accentMuted}, 0 6px 18px rgba(15, 23, 42, 0.06)`
+        : `inset 0 1px 0 ${palette.accentMuted}, 0 10px 28px rgba(15, 23, 42, 0.08)`,
     overflow: 'hidden',
     position: 'relative',
   };
@@ -554,10 +581,24 @@ const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({ data, mer
                     flexShrink: 0,
                   }}
                 />
-                <span style={{ color: palette.subtext, fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>Tactical Reasoning</span>
+                <span
+                  style={{
+                    color: palette.subtext,
+                    fontSize: 11,
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                    fontWeight: 700,
+                  }}
+                >
+                  Tactical Reasoning
+                </span>
               </div>
-              <div style={{ color: palette.text, fontSize: 18, lineHeight: '24px', fontWeight: 800 }}>{data.header.title}</div>
-              <div style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: '20px', marginTop: 6 }}>{data.header.des}</div>
+              <div style={{ color: palette.text, fontSize: 18, lineHeight: '24px', fontWeight: 800 }}>
+                {data.header.title}
+              </div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: '20px', marginTop: 6 }}>
+                {data.header.des}
+              </div>
             </div>
             <div
               style={{
@@ -603,8 +644,20 @@ const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({ data, mer
                     padding: '12px 14px',
                   }}
                 >
-                  <div style={{ color: 'var(--text-secondary)', fontSize: 11, lineHeight: '16px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{item.title}</div>
-                  <div style={{ color: palette.text, fontSize: 24, lineHeight: '28px', fontWeight: 800, marginTop: 6 }}>{item.count}</div>
+                  <div
+                    style={{
+                      color: 'var(--text-secondary)',
+                      fontSize: 11,
+                      lineHeight: '16px',
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    {item.title}
+                  </div>
+                  <div style={{ color: palette.text, fontSize: 24, lineHeight: '28px', fontWeight: 800, marginTop: 6 }}>
+                    {item.count}
+                  </div>
                 </div>
               ))}
             </div>
