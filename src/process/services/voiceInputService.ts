@@ -119,7 +119,6 @@ class VoiceInputService {
     const modelPath = this.resolveModelPath(options.modelPath);
     const pythonBin = this.resolvePythonExecutable();
     const scriptPath = this.resolveScriptPath();
-    console.log('[speech] start voice input', { pythonBin, scriptPath, modelPath });
 
     this.stdoutBuffer = '';
     this.child = spawn(pythonBin, [scriptPath, '--model', modelPath], {
@@ -142,9 +141,7 @@ class VoiceInputService {
         if (!text) continue;
         try {
           const payload = JSON.parse(text) as { type?: string; text?: string; error?: string };
-          console.log('[speech] python payload', payload);
           if (payload.type === 'info') {
-            console.log('[speech] python info', payload);
             continue;
           }
           if (payload.type === 'error') {
@@ -164,14 +161,12 @@ class VoiceInputService {
     this.child.stderr.on('data', (chunk: Buffer) => {
       const msg = chunk.toString('utf-8').trim();
       if (!msg) return;
-      console.error('[speech] python stderr', msg);
       this.emit({ error: msg });
     });
 
     this.child.on('exit', (code) => {
       this.running = false;
       this.child = null;
-      console.log('[speech] python exit', { code });
       if (code !== 0 && code !== null) {
         this.emit({ error: `voice process exited with code ${code}` });
       }
@@ -179,7 +174,6 @@ class VoiceInputService {
     this.child.on('error', (error: Error) => {
       this.running = false;
       this.child = null;
-      console.error('[speech] python spawn error', error);
       this.emit({ error: `voice process start failed: ${error.message}` });
     });
 
@@ -191,7 +185,6 @@ class VoiceInputService {
   async stop(): Promise<{ running: boolean }> {
     if (!this.running) return { running: false };
     this.running = false;
-    console.log('[speech] stop voice input');
     if (this.child && !this.child.killed) {
       this.child.kill();
     }

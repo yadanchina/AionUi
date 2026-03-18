@@ -205,7 +205,6 @@ const SendBox: React.FC<{
 
   useEffect(() => {
     const unsubscribe = ipcBridge.speech.transcript.on((event) => {
-      console.log('[speech] renderer transcript', event);
       if (event.error) {
         setIsRecording(false);
         voiceBaseRef.current = null;
@@ -376,15 +375,12 @@ const SendBox: React.FC<{
 
   const toggleVoiceInput = useCallback(async () => {
     if (isRecording) {
-      console.log('[speech] renderer stop request');
       await ipcBridge.speech.stopVoiceInput.invoke();
       setIsRecording(false);
       voiceBaseRef.current = null;
       return;
     }
-    console.log('[speech] renderer start request');
     const result = await ipcBridge.speech.startVoiceInput.invoke({});
-    console.log('[speech] renderer start result', result);
     if (!result.success) {
       message.error(result.msg || t('messages.voiceInputFailed', { defaultValue: 'Voice input failed' }));
       setIsRecording(false);
@@ -544,6 +540,7 @@ const SendBox: React.FC<{
           {isSingleLine && (
             <div className='flex items-center gap-2'>
               {sendButtonPrefix}
+              {voiceInputButton}
               {isLoading || loading ? (
                 <Button
                   shape='circle'
@@ -563,6 +560,7 @@ const SendBox: React.FC<{
             <div className={isMobile ? 'sendbox-tools sendbox-tools-scroll-mobile' : 'sendbox-tools'}>{tools}</div>
             <div className='flex items-center gap-2'>
               {sendButtonPrefix}
+              {voiceInputButton}
               {isLoading || loading ? (
                 <Button
                   shape='circle'

@@ -14,7 +14,6 @@ export function initSpeechBridge(): void {
   initialized = true;
 
   voiceInputService.onTranscript((event) => {
-    console.log('[speech] emit transcript to renderer', event);
     ipcBridge.speech.transcript.emit(event);
   });
 
