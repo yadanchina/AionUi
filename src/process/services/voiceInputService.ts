@@ -54,29 +54,38 @@ class VoiceInputService {
     return null;
   }
 
+  private formatPythonSpawnError(error: NodeJS.ErrnoException, pythonBin: string): string {
+    const configuredPython = process.env.AIONUI_PYTHON_PATH;
+    const targetHint = configuredPython || pythonBin;
+
+    if (error.code === 'ENOENT') {
+      if (configuredPython) {
+        return `Configured Python not found: ${targetHint}`;
+      }
+      return process.platform === 'win32'
+        ? 'System Python not found. Please install Python and ensure `python` is available in PATH.'
+        : 'System Python not found. Please install Python 3 and ensure `python3` is available in PATH.';
+    }
+
+    if (error.code === 'EACCES') {
+      if (configuredPython) {
+        return `Configured Python is not executable: ${targetHint}`;
+      }
+      return process.platform === 'win32'
+        ? 'System Python is not executable. Please verify the `python` command in PATH.'
+        : 'System Python 3 is not executable. Please verify the `python3` command in PATH.';
+    }
+
+    return `voice process start failed: ${error.message}`;
+  }
+
   private resolvePythonExecutable(): string {
     const envPythonPath = process.env.AIONUI_PYTHON_PATH;
     if (envPythonPath) {
       return envPythonPath;
     }
 
-    const isWindows = process.platform === 'win32';
-    const pythonRelativeCandidates = isWindows
-      ? ['python/python.exe', 'python.exe']
-      : ['python/bin/python3', 'python/bin/python', 'python3', 'python'];
-
-    const runtimeRoots = app.isPackaged
-      ? [process.resourcesPath]
-      : [path.join(process.cwd(), 'resources'), process.resourcesPath];
-    const absoluteCandidates = runtimeRoots.flatMap((root) =>
-      pythonRelativeCandidates.map((relativePath) => path.join(root, relativePath))
-    );
-    const embeddedPython = this.findFirstExistingPath(absoluteCandidates);
-    if (embeddedPython) {
-      return embeddedPython;
-    }
-
-    return isWindows ? 'python' : 'python3';
+    return process.platform === 'win32' ? 'python' : 'python3';
   }
 
   private resolveScriptPath(): string {
@@ -171,10 +180,10 @@ class VoiceInputService {
         this.emit({ error: `voice process exited with code ${code}` });
       }
     });
-    this.child.on('error', (error: Error) => {
+    this.child.on('error', (error: NodeJS.ErrnoException) => {
       this.running = false;
       this.child = null;
-      this.emit({ error: `voice process start failed: ${error.message}` });
+      this.emit({ error: this.formatPythonSpawnError(error, pythonBin) });
     });
 
     this.running = true;

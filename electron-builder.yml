@@ -100,8 +100,6 @@ files:
 extraResources:
   - from: public
     to: .
-  - from: resources/python
-    to: python
   - from: resources/vosk-model
     to: vosk-model
   - from: scripts/voice
