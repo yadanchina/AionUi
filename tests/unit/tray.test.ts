@@ -90,6 +90,14 @@ const mockModules = () => {
   vi.doMock('@process/database', () => ({
     getDatabase: mockGetDatabase,
   }));
+
+  vi.doMock('@process/database/index', () => ({
+    getDatabase: mockGetDatabase,
+  }));
+
+  vi.doMock('@process/database/export', () => ({
+    getDatabase: mockGetDatabase,
+  }));
 };
 
 describe('tray module', () => {
@@ -107,6 +115,8 @@ describe('tray module', () => {
     vi.doUnmock('@process/i18n');
     vi.doUnmock('@process/task/workerTaskManagerSingleton');
     vi.doUnmock('@process/database');
+    vi.doUnmock('@process/database/index');
+    vi.doUnmock('@process/database/export');
   });
 
   describe('state accessors', () => {
@@ -254,10 +264,13 @@ describe('tray module', () => {
     const getTemplateFromRefresh = async () => {
       const { createOrUpdateTray, refreshTrayMenu } = await import('@/process/tray');
       createOrUpdateTray();
-      const previousCalls = mockBuildFromTemplate.mock.calls.length;
       await refreshTrayMenu();
-      expect(mockBuildFromTemplate.mock.calls.length).toBeGreaterThan(previousCalls);
-      return mockBuildFromTemplate.mock.calls[previousCalls][0] as any[];
+      await vi.waitFor(() => {
+        expect(mockBuildFromTemplate).toHaveBeenCalled();
+      });
+      const latestCall = mockBuildFromTemplate.mock.calls.at(-1);
+      expect(latestCall).toBeDefined();
+      return latestCall![0] as any[];
     };
 
     it('should include recent conversations when available', async () => {

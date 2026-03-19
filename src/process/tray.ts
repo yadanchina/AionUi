@@ -50,7 +50,7 @@ const getTrayIcon = (): Electron.NativeImage => {
 const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
   const getRecentConversations = async (): Promise<Array<{ id: string; title: string }>> => {
     try {
-      const { getDatabase } = await import('@process/database');
+      const { getDatabase } = await import('@process/database/export');
       const db = getDatabase();
       const result = db.getUserConversations(undefined, 0, 5);
       return (result.data || [])
