@@ -5,9 +5,10 @@
  */
 
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import fs from 'node:fs';
+import fs, { accessSync, constants as fsConstants } from 'node:fs';
 import path from 'node:path';
 import { app } from 'electron';
+import { getEnhancedEnv } from '@process/utils/shellEnv';
 
 type TranscriptEvent = { text?: string; isFinal?: boolean; error?: string };
 type StartOptions = { modelPath?: string };
@@ -79,13 +80,83 @@ class VoiceInputService {
     return `voice process start failed: ${error.message}`;
   }
 
-  private resolvePythonExecutable(): string {
+  private isExecutableFile(candidate: string): boolean {
+    try {
+      accessSync(candidate, fsConstants.X_OK);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private findCommandInPath(command: string, envPath?: string): string | null {
+    if (!envPath) return null;
+
+    const pathEntries = envPath.split(path.delimiter).filter(Boolean);
+    for (const entry of pathEntries) {
+      const candidate = path.join(entry, command);
+      if (this.isExecutableFile(candidate)) {
+        return candidate;
+      }
+    }
+
+    return null;
+  }
+
+  private resolvePythonExecutable(envPath?: string): string {
     const envPythonPath = process.env.AIONUI_PYTHON_PATH;
     if (envPythonPath) {
       return envPythonPath;
     }
 
-    return process.platform === 'win32' ? 'python' : 'python3';
+    if (process.platform === 'win32') {
+      return 'python';
+    }
+
+    const candidates = [
+      'python3',
+      'python',
+      path.join(process.env.HOME || '', '.local', 'bin', 'python3'),
+      path.join(process.env.HOME || '', '.pyenv', 'shims', 'python3'),
+      path.join(process.env.HOME || '', '.pyenv', 'shims', 'python'),
+      '/usr/bin/python3',
+      '/usr/local/bin/python3',
+      '/bin/python3',
+    ].filter(Boolean);
+
+    for (const candidate of candidates) {
+      if (path.isAbsolute(candidate) && this.isExecutableFile(candidate)) {
+        return candidate;
+      }
+      const resolved = this.findCommandInPath(candidate, envPath);
+      if (resolved) {
+        return resolved;
+      }
+    }
+
+    return 'python3';
+  }
+
+  private formatVoiceRuntimeError(message: string, pythonBin: string): string {
+    if (process.platform === 'linux') {
+      if (message.includes('python deps missing:')) {
+        if (message.includes('No module named')) {
+          return `Voice Python dependencies are missing for ${pythonBin}. Install scripts/voice/requirements.txt into the same Python environment.`;
+        }
+        if (message.includes('PortAudio') || message.includes('libportaudio')) {
+          return `Voice Python dependencies are incomplete for ${pythonBin}. Install PortAudio system libraries, for example: sudo apt install portaudio19-dev libportaudio2.`;
+        }
+      }
+
+      if (
+        message.includes('audio stream failed:') &&
+        (message.includes('PortAudio') || message.includes('Error querying device'))
+      ) {
+        return 'Linux audio input initialization failed. Verify microphone access and install PortAudio runtime libraries such as `libportaudio2`.';
+      }
+    }
+
+    return message;
   }
 
   private resolveScriptPath(): string {
@@ -126,18 +197,18 @@ class VoiceInputService {
     }
 
     const modelPath = this.resolveModelPath(options.modelPath);
-    const pythonBin = this.resolvePythonExecutable();
+    const env = getEnhancedEnv({
+      PYTHONIOENCODING: 'utf-8',
+      PYTHONUTF8: '1',
+    });
+    const pythonBin = this.resolvePythonExecutable(env.PATH);
     const scriptPath = this.resolveScriptPath();
 
     this.stdoutBuffer = '';
     this.child = spawn(pythonBin, [scriptPath, '--model', modelPath], {
       stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true,
-      env: {
-        ...process.env,
-        PYTHONIOENCODING: 'utf-8',
-        PYTHONUTF8: '1',
-      },
+      env,
     });
 
     this.child.stdout.on('data', (chunk: Buffer) => {
@@ -154,7 +225,7 @@ class VoiceInputService {
             continue;
           }
           if (payload.type === 'error') {
-            this.emit({ error: payload.error || 'voice input failed' });
+            this.emit({ error: this.formatVoiceRuntimeError(payload.error || 'voice input failed', pythonBin) });
             void this.stop();
             return;
           }
@@ -170,7 +241,7 @@ class VoiceInputService {
     this.child.stderr.on('data', (chunk: Buffer) => {
       const msg = chunk.toString('utf-8').trim();
       if (!msg) return;
-      this.emit({ error: msg });
+      this.emit({ error: this.formatVoiceRuntimeError(msg, pythonBin) });
     });
 
     this.child.on('exit', (code) => {
