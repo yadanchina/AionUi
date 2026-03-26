@@ -4,16 +4,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { OpenClawAgent, type OpenClawAgentConfig } from '@/agent/openclaw';
-import { channelEventBus } from '@/channels/agent/ChannelEventBus';
+import { OpenClawAgent, type OpenClawAgentConfig } from '@process/agent/openclaw';
+import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
-import type { IConfirmation, TMessage } from '@/common/chatLib';
-import { transformMessage } from '@/common/chatLib';
-import type { IResponseMessage } from '@/common/ipcBridge';
+import type { IConfirmation, TMessage } from '@/common/chat/chatLib';
+import { transformMessage } from '@/common/chat/chatLib';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { uuid } from '@/common/utils';
-import type { AcpBackendAll } from '@/types/acpTypes';
-import { getDatabase } from '@process/database';
-import { addMessage, addOrUpdateMessage } from '@process/message';
+import type { AcpBackendAll } from '@/common/types/acpTypes';
+import { getDatabase } from '@process/services/database';
+import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
@@ -124,7 +124,12 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     if (msg.type === 'acp_permission') {
       const permissionData = msg.data as {
         sessionId: string;
-        toolCall: { toolCallId: string; title?: string; kind?: string; rawInput?: Record<string, unknown> };
+        toolCall: {
+          toolCallId: string;
+          title?: string;
+          kind?: string;
+          rawInput?: Record<string, unknown>;
+        };
         options: Array<{ optionId: string; name: string; kind: string }>;
       };
 
@@ -165,9 +170,9 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
    * Persist the resolved session key to the database for resume support.
    * Follows the same pattern as AcpAgentManager.saveAcpSessionId().
    */
-  private saveSessionKey(sessionKey: string): void {
+  private async saveSessionKey(sessionKey: string): Promise<void> {
     try {
-      const db = getDatabase();
+      const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
       if (result.success && result.data && result.data.type === 'openclaw-gateway') {
         const conversation = result.data;
@@ -175,7 +180,9 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
           ...conversation.extra,
           sessionKey,
         };
-        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+        db.updateConversation(this.conversation_id, {
+          extra: updatedExtra,
+        } as Partial<typeof conversation>);
       }
     } catch (error) {
       console.error('[OpenClawAgentManager] Failed to save session key:', error);

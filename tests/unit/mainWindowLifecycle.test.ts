@@ -11,37 +11,31 @@ describe('mainWindowLifecycle', () => {
     vi.resetModules();
     vi.clearAllMocks();
 
-    vi.doMock('@/process/bridge/applicationBridge', () => ({
+    vi.doMock('@process/bridge/applicationBridge', () => ({
       setApplicationMainWindow: vi.fn(),
     }));
 
-    vi.doMock('@/process/bridge/notificationBridge', () => ({
-      setMainWindow: vi.fn(),
-    }));
-
-    vi.doMock('@/process/deepLink', () => ({
+    vi.doMock('@process/utils/deepLink', () => ({
       setDeepLinkMainWindow: vi.fn(),
     }));
 
-    vi.doMock('@/process/tray', () => ({
+    vi.doMock('@process/utils/tray', () => ({
       setTrayMainWindow: vi.fn(),
     }));
   });
 
   it('should bind the same window to all main-window consumers', async () => {
     const window = {} as Electron.BrowserWindow;
-    const { setApplicationMainWindow } = await import('@/process/bridge/applicationBridge');
-    const { setMainWindow } = await import('@/process/bridge/notificationBridge');
-    const { setDeepLinkMainWindow } = await import('@/process/deepLink');
-    const { setTrayMainWindow } = await import('@/process/tray');
-    const { bindMainWindowReferences } = await import('@/process/mainWindowLifecycle');
+    const { setApplicationMainWindow } = await import('@process/bridge/applicationBridge');
+    const { setDeepLinkMainWindow } = await import('@process/utils/deepLink');
+    const { setTrayMainWindow } = await import('@process/utils/tray');
+    const { bindMainWindowReferences } = await import('@process/utils/mainWindowLifecycle');
 
     bindMainWindowReferences(window);
 
     expect(setTrayMainWindow).toHaveBeenCalledWith(window);
     expect(setDeepLinkMainWindow).toHaveBeenCalledWith(window);
     expect(setApplicationMainWindow).toHaveBeenCalledWith(window);
-    expect(setMainWindow).toHaveBeenCalledWith(window);
   });
 
   it('should show and focus the current main window instead of recreating it', async () => {
@@ -53,7 +47,7 @@ describe('mainWindowLifecycle', () => {
       show: vi.fn(),
       focus: vi.fn(),
     } as unknown as Electron.BrowserWindow;
-    const { showOrCreateMainWindow } = await import('@/process/mainWindowLifecycle');
+    const { showOrCreateMainWindow } = await import('@process/utils/mainWindowLifecycle');
 
     showOrCreateMainWindow({ mainWindow: window, createWindow });
 
@@ -72,7 +66,7 @@ describe('mainWindowLifecycle', () => {
       show: vi.fn(),
       focus: vi.fn(),
     } as unknown as Electron.BrowserWindow;
-    const { showOrCreateMainWindow } = await import('@/process/mainWindowLifecycle');
+    const { showOrCreateMainWindow } = await import('@process/utils/mainWindowLifecycle');
 
     showOrCreateMainWindow({ mainWindow: destroyedWindow, createWindow });
 

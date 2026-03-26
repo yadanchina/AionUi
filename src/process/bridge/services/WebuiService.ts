@@ -5,10 +5,10 @@
  */
 
 import { networkInterfaces } from 'os';
-import type { IWebUIStatus } from '@/common/ipcBridge';
-import { AuthService } from '@/webserver/auth/service/AuthService';
-import { UserRepository } from '@/webserver/auth/repository/UserRepository';
-import { AUTH_CONFIG, SERVER_CONFIG } from '@/webserver/config/constants';
+import type { IWebUIStatus } from '@/common/adapter/ipcBridge';
+import { AuthService } from '@process/webserver/auth/service/AuthService';
+import { UserRepository } from '@process/webserver/auth/repository/UserRepository';
+import { AUTH_CONFIG, SERVER_CONFIG } from '@process/webserver/config/constants';
 
 /**
  * WebUI 服务层 - 封装所有 WebUI 相关的业务逻辑
@@ -26,7 +26,7 @@ export class WebuiService {
   private static async loadWebServerFunctions(): Promise<void> {
     if (this.webServerFunctionsLoaded) return;
 
-    const webServer = await import('@/webserver/index');
+    const webServer = await import('@process/webserver/index');
     this._getInitialAdminPassword = webServer.getInitialAdminPassword;
     this._clearInitialAdminPassword = webServer.clearInitialAdminPassword;
     this.webServerFunctionsLoaded = true;
@@ -95,7 +95,7 @@ export class WebuiService {
    */
   static async getAdminUser() {
     await this.loadWebServerFunctions();
-    const adminUser = UserRepository.getSystemUser();
+    const adminUser = await UserRepository.getSystemUser();
     if (!adminUser) {
       throw new Error('WebUI user not found');
     }
@@ -116,7 +116,7 @@ export class WebuiService {
   ): Promise<IWebUIStatus> {
     await this.loadWebServerFunctions();
 
-    const adminUser = UserRepository.getSystemUser();
+    const adminUser = await UserRepository.getSystemUser();
     const running = webServerInstance !== null;
     const port = webServerInstance?.port ?? SERVER_CONFIG.DEFAULT_PORT;
     const allowRemote = webServerInstance?.allowRemote ?? false;
@@ -152,10 +152,10 @@ export class WebuiService {
 
     // 更新密码（密文存储）/ Update password (encrypted storage)
     const newPasswordHash = await AuthService.hashPassword(newPassword);
-    UserRepository.updatePassword(adminUser.id, newPasswordHash);
+    await UserRepository.updatePassword(adminUser.id, newPasswordHash);
 
     // 使所有现有 token 失效 / Invalidate all existing tokens
-    AuthService.invalidateAllTokens();
+    await AuthService.invalidateAllTokens();
 
     // 清除初始密码（用户已修改密码）/ Clear initial password (user has changed password)
     this.clearInitialAdminPassword();
@@ -170,7 +170,7 @@ export class WebuiService {
       throw new Error(usernameValidation.errors.join('; '));
     }
 
-    const existingUser = UserRepository.findByUsername(normalizedUsername);
+    const existingUser = await UserRepository.findByUsername(normalizedUsername);
     if (existingUser && existingUser.id !== adminUser.id) {
       throw new Error('Username already exists');
     }
@@ -179,8 +179,8 @@ export class WebuiService {
       return adminUser.username;
     }
 
-    UserRepository.updateUsername(adminUser.id, normalizedUsername);
-    AuthService.invalidateAllTokens();
+    await UserRepository.updateUsername(adminUser.id, normalizedUsername);
+    await AuthService.invalidateAllTokens();
 
     return normalizedUsername;
   }
@@ -197,10 +197,10 @@ export class WebuiService {
     const newPasswordHash = await AuthService.hashPassword(newPassword);
 
     // 更新密码 / Update password
-    UserRepository.updatePassword(adminUser.id, newPasswordHash);
+    await UserRepository.updatePassword(adminUser.id, newPasswordHash);
 
     // 使所有现有 token 失效 / Invalidate all existing tokens
-    AuthService.invalidateAllTokens();
+    await AuthService.invalidateAllTokens();
 
     // 清除旧的初始密码 / Clear old initial password
     this.clearInitialAdminPassword();

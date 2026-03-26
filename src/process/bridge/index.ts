@@ -4,7 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { acpDetector } from '@/agent/acp/AcpDetector';
+import { acpDetector } from '@process/agent/acp/AcpDetector';
+import type { IChannelRepository } from '@process/services/database/IChannelRepository';
+import type { IConversationRepository } from '@process/services/database/IConversationRepository';
 import type { IConversationService } from '@process/services/IConversationService';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import { initAcpConversationBridge } from './acpConversationBridge';
@@ -33,11 +35,15 @@ import { initWebuiBridge } from './webuiBridge';
 import { initSystemSettingsBridge } from './systemSettingsBridge';
 import { initWindowControlsBridge } from './windowControlsBridge';
 import { initNotificationBridge } from './notificationBridge';
+import { initPptPreviewBridge } from './pptPreviewBridge';
 import { initExtensionsBridge } from './extensionsBridge';
+import { initWeixinLoginBridge } from './weixinLoginBridge';
 
 export interface BridgeDependencies {
   conversationService: IConversationService;
+  conversationRepo: IConversationRepository;
   workerTaskManager: IWorkerTaskManager;
+  channelRepo: IChannelRepository;
 }
 
 /**
@@ -50,28 +56,30 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initFsBridge();
   initFileWatchBridge();
   initConversationBridge(deps.conversationService, deps.workerTaskManager);
-  initApplicationBridge();
-  initGeminiConversationBridge();
+  initApplicationBridge(deps.workerTaskManager);
+  initGeminiConversationBridge(deps.workerTaskManager);
   // 额外的 Gemini 辅助桥（订阅检测等）需要在对话桥初始化后可用 / extra helpers after core bridges
   initGeminiBridge();
   initBedrockBridge();
-  initAcpConversationBridge();
+  initAcpConversationBridge(deps.workerTaskManager);
   initAuthBridge();
   initModelBridge();
   initMcpBridge();
-  initDatabaseBridge();
   initPreviewHistoryBridge();
   initDocumentBridge();
+  initPptPreviewBridge();
   initWindowControlsBridge();
   initUpdateBridge();
   initWebuiBridge();
-  initChannelBridge();
+  initChannelBridge(deps.channelRepo);
+  initDatabaseBridge(deps.conversationRepo);
+  initExtensionsBridge(deps.conversationRepo, deps.workerTaskManager);
   initCronBridge();
   initSystemSettingsBridge();
   initNotificationBridge();
-  initTaskBridge();
-  initExtensionsBridge();
+  initTaskBridge(deps.workerTaskManager);
   initStarOfficeBridge();
+  initWeixinLoginBridge();
 }
 
 /**
@@ -105,6 +113,7 @@ export {
   initMcpBridge,
   initModelBridge,
   initNotificationBridge,
+  initPptPreviewBridge,
   initPreviewHistoryBridge,
   initShellBridge,
   initStarOfficeBridge,
@@ -113,8 +122,7 @@ export {
   initUpdateBridge,
   initWebuiBridge,
   initWindowControlsBridge,
+  initWeixinLoginBridge,
 };
-export { setMainWindow } from './notificationBridge';
-
 // 导出窗口控制相关工具函数
 export { registerWindowMaximizeListeners } from './windowControlsBridge';

@@ -5,17 +5,17 @@
  */
 
 import type { IConversationService, CreateConversationParams, MigrateConversationParams } from './IConversationService';
-import type { IConversationRepository } from '@process/database/IConversationRepository';
-import type { TChatConversation } from '@/common/storage';
+import type { IConversationRepository } from '@process/services/database/IConversationRepository';
+import type { TChatConversation } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
-import { cronService } from './cron/CronService';
+import { cronService } from './cron/cronServiceSingleton';
 import {
   createGeminiAgent,
   createAcpAgent,
   createCodexAgent,
   createOpenClawAgent,
   createNanobotAgent,
-} from '@process/initAgent';
+} from '@process/utils/initAgent';
 
 /**
  * Concrete implementation of IConversationService.
@@ -28,6 +28,10 @@ export class ConversationServiceImpl implements IConversationService {
     return this.repo.getConversation(id);
   }
 
+  async listAllConversations(): Promise<TChatConversation[]> {
+    return this.repo.listAllConversations();
+  }
+
   async deleteConversation(id: string): Promise<void> {
     try {
       const jobs = await cronService.listJobsByConversation(id);
@@ -37,13 +41,13 @@ export class ConversationServiceImpl implements IConversationService {
     } catch (err) {
       console.warn('[ConversationServiceImpl] Failed to cleanup cron jobs:', err);
     }
-    this.repo.deleteConversation(id);
+    await this.repo.deleteConversation(id);
   }
 
   async updateConversation(id: string, updates: Partial<TChatConversation>, mergeExtra?: boolean): Promise<void> {
     let finalUpdates = updates;
     if (mergeExtra && updates.extra) {
-      const existing = this.repo.getConversation(id);
+      const existing = await this.repo.getConversation(id);
       if (existing) {
         finalUpdates = {
           ...updates,
@@ -51,7 +55,7 @@ export class ConversationServiceImpl implements IConversationService {
         } as Partial<TChatConversation>;
       }
     }
-    this.repo.updateConversation(id, finalUpdates);
+    await this.repo.updateConversation(id, finalUpdates);
   }
 
   async createWithMigration(params: MigrateConversationParams): Promise<TChatConversation> {
@@ -61,7 +65,7 @@ export class ConversationServiceImpl implements IConversationService {
       createTime: conversation.createTime ?? Date.now(),
       modifyTime: conversation.modifyTime ?? Date.now(),
     };
-    this.repo.createConversation(conv);
+    await this.repo.createConversation(conv);
 
     if (sourceConversationId) {
       // Copy all messages from source conversation
@@ -70,9 +74,9 @@ export class ConversationServiceImpl implements IConversationService {
       let hasMore = true;
 
       while (hasMore) {
-        const { data: messages, hasMore: more } = this.repo.getMessages(sourceConversationId, page, pageSize);
+        const { data: messages, hasMore: more } = await this.repo.getMessages(sourceConversationId, page, pageSize);
         for (const msg of messages) {
-          this.repo.insertMessage({
+          await this.repo.insertMessage({
             ...msg,
             id: uuid(),
             conversation_id: conv.id,
@@ -105,10 +109,10 @@ export class ConversationServiceImpl implements IConversationService {
       }
 
       // Integrity check: only delete source if message counts match
-      const sourceMsgs = this.repo.getMessages(sourceConversationId, 0, 1);
-      const newMsgs = this.repo.getMessages(conv.id, 0, 1);
+      const sourceMsgs = await this.repo.getMessages(sourceConversationId, 0, 1);
+      const newMsgs = await this.repo.getMessages(conv.id, 0, 1);
       if (sourceMsgs.total === newMsgs.total) {
-        this.repo.deleteConversation(sourceConversationId);
+        await this.repo.deleteConversation(sourceConversationId);
       } else {
         console.error('[ConversationServiceImpl] Migration integrity check failed: message counts do not match.', {
           source: sourceMsgs.total,
@@ -169,9 +173,12 @@ export class ConversationServiceImpl implements IConversationService {
     if (params.channelChatId) overrides.channelChatId = params.channelChatId;
     // The spread preserves the discriminant field (type) from `conversation`;
     // the assertion is safe because `overrides` only contains non-discriminant fields.
-    const finalConversation = { ...conversation, ...overrides } as TChatConversation;
+    const finalConversation = {
+      ...conversation,
+      ...overrides,
+    } as TChatConversation;
 
-    this.repo.createConversation(finalConversation);
+    await this.repo.createConversation(finalConversation);
     return finalConversation;
   }
 }

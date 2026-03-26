@@ -4,20 +4,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { acpDetector } from '@/agent/acp/AcpDetector';
-import { AcpConnection } from '@/agent/acp/AcpConnection';
-import { buildAcpModelInfo, summarizeAcpModelInfo } from '@/agent/acp/modelInfo';
-import { CodexConnection } from '@/agent/codex/connection/CodexConnection';
-import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
-import AcpAgentManager from '@/process/task/AcpAgentManager';
-import CodexAgentManager from '@/process/task/CodexAgentManager';
-import { GeminiAgentManager } from '@/process/task/GeminiAgentManager';
+import { acpDetector } from '@process/agent/acp/AcpDetector';
+import { AcpConnection } from '@process/agent/acp/AcpConnection';
+import { buildAcpModelInfo, summarizeAcpModelInfo } from '@process/agent/acp/modelInfo';
+import { CodexConnection } from '@process/agent/codex/connection/CodexConnection';
+import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
+import AcpAgentManager from '@process/task/AcpAgentManager';
+import CodexAgentManager from '@process/task/CodexAgentManager';
+import { GeminiAgentManager } from '@process/task/GeminiAgentManager';
 import { mcpService } from '@/process/services/mcpServices/McpService';
 import { mainLog, mainWarn } from '@/process/utils/mainLogger';
-import { ipcBridge } from '../../common';
+import { ipcBridge } from '@/common';
 import * as os from 'os';
 
-export function initAcpConversationBridge(): void {
+export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager): void {
   // Debug provider to check environment variables
   ipcBridge.acpConversation.checkEnv.provider(() => {
     return Promise.resolve({
@@ -217,7 +217,10 @@ export function initAcpConversationBridge(): void {
       !task ||
       !(task instanceof AcpAgentManager || task instanceof GeminiAgentManager || task instanceof CodexAgentManager)
     ) {
-      return Promise.resolve({ success: true, data: { mode: 'default', initialized: false } });
+      return Promise.resolve({
+        success: true,
+        data: { mode: 'default', initialized: false },
+      });
     }
     return Promise.resolve({ success: true, data: task.getMode() });
   });
@@ -230,7 +233,10 @@ export function initAcpConversationBridge(): void {
     if (!task || !(task instanceof AcpAgentManager || task instanceof CodexAgentManager)) {
       return Promise.resolve({ success: true, data: { modelInfo: null } });
     }
-    return Promise.resolve({ success: true, data: { modelInfo: task.getModelInfo() } });
+    return Promise.resolve({
+      success: true,
+      data: { modelInfo: task.getModelInfo() },
+    });
   });
 
   ipcBridge.acpConversation.probeModelInfo.provider(async ({ backend }) => {
@@ -282,9 +288,15 @@ export function initAcpConversationBridge(): void {
     try {
       const task = await workerTaskManager.getOrBuildTask(conversationId);
       if (!task || !(task instanceof AcpAgentManager)) {
-        return { success: false, msg: 'Conversation not found or not an ACP agent' };
+        return {
+          success: false,
+          msg: 'Conversation not found or not an ACP agent',
+        };
       }
-      return { success: true, data: { modelInfo: await task.setModel(modelId) } };
+      return {
+        success: true,
+        data: { modelInfo: await task.setModel(modelId) },
+      };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       return { success: false, msg: errorMsg };
@@ -302,7 +314,10 @@ export function initAcpConversationBridge(): void {
       if (
         !(task instanceof AcpAgentManager || task instanceof GeminiAgentManager || task instanceof CodexAgentManager)
       ) {
-        return { success: false, msg: 'Mode switching not supported for this agent type' };
+        return {
+          success: false,
+          msg: 'Mode switching not supported for this agent type',
+        };
       }
       return await task.setMode(mode);
     } catch (error) {
@@ -319,7 +334,10 @@ export function initAcpConversationBridge(): void {
     if (!task || !(task instanceof AcpAgentManager)) {
       return Promise.resolve({ success: true, data: { configOptions: [] } });
     }
-    return Promise.resolve({ success: true, data: { configOptions: task.getConfigOptions() } });
+    return Promise.resolve({
+      success: true,
+      data: { configOptions: task.getConfigOptions() },
+    });
   });
 
   // Set a config option value for ACP agents (e.g., reasoning effort)
@@ -328,7 +346,10 @@ export function initAcpConversationBridge(): void {
     try {
       const task = await workerTaskManager.getOrBuildTask(conversationId);
       if (!task || !(task instanceof AcpAgentManager)) {
-        return { success: false, msg: 'Conversation not found or not an ACP agent' };
+        return {
+          success: false,
+          msg: 'Conversation not found or not an ACP agent',
+        };
       }
       const configOptions = await task.setConfigOption(configId, value);
       return { success: true, data: { configOptions } };

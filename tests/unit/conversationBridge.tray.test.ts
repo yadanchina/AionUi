@@ -43,7 +43,7 @@ const registerMocks = () => {
     GeminiApprovalStore: { getInstance: vi.fn(() => ({})) },
   }));
 
-  vi.doMock('@process/database', () => ({
+  vi.doMock('@process/services/database', () => ({
     getDatabase: vi.fn(() => ({
       getUserConversations: vi.fn(() => ({ data: [] })),
     })),
@@ -68,6 +68,7 @@ const registerMocks = () => {
         stop: createCommand('conversation.stop'),
         getSlashCommands: createCommand('conversation.getSlashCommands'),
         sendMessage: createCommand('conversation.sendMessage'),
+        warmup: createCommand('conversation.warmup'),
         responseStream: { emit: vi.fn() },
         listChanged: { emit: vi.fn() },
         confirmation: {
@@ -81,7 +82,7 @@ const registerMocks = () => {
     },
   }));
 
-  vi.doMock('@/process/initStorage', () => ({
+  vi.doMock('@process/utils/initStorage', () => ({
     getSkillsDir: vi.fn(() => '/mock/skills'),
     ProcessChat: { get: vi.fn(async () => []) },
   }));
@@ -90,7 +91,7 @@ const registerMocks = () => {
     prepareFirstMessage: vi.fn(),
   }));
 
-  vi.doMock('@/process/tray', () => ({
+  vi.doMock('@process/utils/tray', () => ({
     refreshTrayMenu: mockRefreshTrayMenu,
   }));
 
@@ -103,13 +104,13 @@ const registerMocks = () => {
     computeOpenClawIdentityHash: vi.fn(async () => 'identity-hash'),
   }));
 
-  vi.doMock('@/process/bridge/migrationUtils', () => ({
+  vi.doMock('@process/bridge/migrationUtils', () => ({
     migrateConversationToDatabase: vi.fn(),
   }));
 };
 
 const getProvider = async (key: string): Promise<Provider> => {
-  const mod = await import('@/process/bridge/conversationBridge');
+  const mod = await import('@process/bridge/conversationBridge');
   mod.initConversationBridge(mockConversationService as any, mockWorkerTaskManager as any);
 
   const provider = handlers[key];

@@ -7,7 +7,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 
-import type { TimelineSection } from '../../src/renderer/pages/conversation/grouped-history/types';
+import type { TimelineSection } from '../../src/renderer/pages/conversation/GroupedHistory/types';
 
 // ── localStorage mock ────────────────────────────────────────────────────────
 
@@ -26,41 +26,48 @@ Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock, wri
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
-const mockInvoke = vi.fn().mockResolvedValue([]);
-
-vi.mock('../../src/common', () => ({
-  ipcBridge: {
-    database: {
-      getUserConversations: { invoke: (...args: unknown[]) => mockInvoke(...args) },
-    },
-    conversation: {
-      listChanged: { on: vi.fn() },
-      responseStream: { on: vi.fn() },
-      turnCompleted: { on: vi.fn() },
-    },
-  },
-}));
-
 vi.mock('react-router-dom', () => ({
   useParams: () => ({}),
-}));
-
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
 }));
 
 // Shared ref so the hoisted mock factory can read the latest value
 const testState = { sections: [] as TimelineSection[] };
 
-vi.mock('../../src/renderer/pages/conversation/grouped-history/utils/groupingHelpers', () => ({
-  buildGroupedHistory: () => ({
-    pinnedConversations: [],
-    timelineSections: testState.sections,
+const mockSetActiveConversation = vi.fn();
+
+vi.mock('../../src/renderer/hooks/context/ConversationHistoryContext', () => ({
+  useConversationHistoryContext: () => ({
+    conversations: [],
+    isConversationGenerating: () => false,
+    hasCompletionUnread: () => false,
+    clearCompletionUnread: () => {},
+    setActiveConversation: mockSetActiveConversation,
+    groupedHistory: {
+      pinnedConversations: [],
+      timelineSections: testState.sections,
+    },
   }),
 }));
 
 vi.mock('../../src/renderer/utils/emitter', () => ({
   addEventListener: () => () => {},
+}));
+
+vi.mock('../../src/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync', () => ({
+  useConversationListSync: () => ({
+    conversations: [],
+    isConversationGenerating: () => false,
+    hasCompletionUnread: () => false,
+    clearCompletionUnread: () => {},
+    setActiveConversation: mockSetActiveConversation,
+  }),
+}));
+
+vi.mock('../../src/renderer/pages/conversation/GroupedHistory/utils/groupingHelpers', () => ({
+  buildGroupedHistory: () => ({
+    pinnedConversations: [],
+    timelineSections: testState.sections,
+  }),
 }));
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -85,13 +92,13 @@ const makeWorkspaceSection = (workspaces: string[]): TimelineSection[] => [
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 // Import the hook statically since mocks are hoisted
-import { useConversations } from '../../src/renderer/pages/conversation/grouped-history/hooks/useConversations';
+import { useConversations } from '../../src/renderer/pages/conversation/GroupedHistory/hooks/useConversations';
 
 describe('useConversations - workspace expansion', () => {
   beforeEach(() => {
     storageMap.clear();
     testState.sections = [];
-    mockInvoke.mockResolvedValue([]);
+    mockSetActiveConversation.mockReset();
   });
 
   it('should auto-expand all workspaces on first load when localStorage is empty', async () => {

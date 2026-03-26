@@ -39,8 +39,8 @@ const mainAliases = {
   '@common': resolve('src/common'),
   '@renderer': resolve('src/renderer'),
   '@process': resolve('src/process'),
-  '@worker': resolve('src/worker'),
-  '@xterm/headless': resolve('src/shims/xterm-headless.ts'),
+  '@worker': resolve('src/process/worker'),
+  '@xterm/headless': resolve('src/common/utils/shims/xterm-headless.ts'),
 };
 
 export default defineConfig(({ mode }) => {
@@ -53,6 +53,11 @@ export default defineConfig(({ mode }) => {
     authToken: process.env.SENTRY_AUTH_TOKEN,
     sourcemaps: {
       filesToDeleteAfterUpload: ['./out/**/*.map'],
+      rewriteSources: (source: string) => {
+        // Normalize Windows backslashes and strip leading relative prefixes
+        // so Sentry paths match the GitHub repo structure (e.g. src/process/...)
+        return source.replace(/\\/g, '/').replace(/^(\.\.\/)+(src\/)/, '$2');
+      },
     },
   };
 
@@ -66,11 +71,15 @@ export default defineConfig(({ mode }) => {
           ? [
               viteStaticCopy({
                 structured: false,
+                // electron-vite builds main process as SSR; viteStaticCopy defaults
+                // to environment: "client" and silently skips non-client environments.
+                environment: 'ssr',
                 targets: [
-                  { src: 'skills/**', dest: 'skills' },
-                  { src: 'rules/**', dest: 'rules' },
-                  { src: 'assistant/**', dest: 'assistant' },
-                  { src: 'src/renderer/assets/logos/**', dest: 'static/images' },
+                  // Use single * glob to copy top-level items (directories) with their contents intact.
+                  // Using ** would flatten all nested files into the dest root.
+                  { src: 'src/process/resources/skills/*', dest: 'skills' },
+                  { src: 'src/process/resources/assistant/*', dest: 'assistant' },
+                  { src: 'src/renderer/assets/logos/*', dest: 'static/images' },
                 ],
               }),
             ]
@@ -87,13 +96,13 @@ export default defineConfig(({ mode }) => {
             // Worker entry files are output alongside index.js in out/main/.
             // BaseAgentManager.resolveWorkerDir() handles the case where code
             // splitting places it in a chunks/ subdirectory.
-            gemini: resolve('src/worker/gemini.ts'),
-            acp: resolve('src/worker/acp.ts'),
-            codex: resolve('src/worker/codex.ts'),
-            'openclaw-gateway': resolve('src/worker/openclaw-gateway.ts'),
-            nanobot: resolve('src/worker/nanobot.ts'),
+            gemini: resolve('src/process/worker/gemini.ts'),
+            acp: resolve('src/process/worker/acp.ts'),
+            codex: resolve('src/process/worker/codex.ts'),
+            'openclaw-gateway': resolve('src/process/worker/openclaw-gateway.ts'),
+            nanobot: resolve('src/process/worker/nanobot.ts'),
             // Built-in MCP server entry points
-            'builtin-mcp-image-gen': resolve('src/process/builtinMcp/imageGenServer.ts'),
+            'builtin-mcp-image-gen': resolve('src/process/resources/builtinMcp/imageGenServer.ts'),
           },
           onwarn(warning, warn) {
             if (warning.code === 'EVAL') return;
@@ -141,7 +150,7 @@ export default defineConfig(({ mode }) => {
           '@common': resolve('src/common'),
           '@renderer': resolve('src/renderer'),
           '@process': resolve('src/process'),
-          '@worker': resolve('src/worker'),
+          '@worker': resolve('src/process/worker'),
           // Force ESM version of streamdown
           streamdown: resolve('node_modules/streamdown/dist/index.js'),
         },

@@ -4,28 +4,28 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { channelEventBus } from '@/channels/agent/ChannelEventBus';
+import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
-import type { CronMessageMeta, IMessageText, IMessageToolGroup, TMessage } from '@/common/chatLib';
-import { transformMessage } from '@/common/chatLib';
-import type { IResponseMessage } from '@/common/ipcBridge';
-import type { IMcpServer, TProviderWithModel } from '@/common/storage';
-import { ProcessConfig, getSkillsDir } from '@/process/initStorage';
-import { ExtensionRegistry } from '@/extensions';
+import type { CronMessageMeta, IMessageText, IMessageToolGroup, TMessage } from '@/common/chat/chatLib';
+import { transformMessage } from '@/common/chat/chatLib';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
+import { ProcessConfig, getSkillsDir } from '@process/utils/initStorage';
+import { ExtensionRegistry } from '@process/extensions';
 import { buildSystemInstructionsWithSkillsIndex } from './agentUtils';
 import { detectSkillLoadRequest, AcpSkillManager, buildSkillContentText } from './AcpSkillManager';
 import { uuid } from '@/common/utils';
 import { getProviderAuthType } from '@/common/utils/platformAuthType';
 import { AuthType, getOauthInfoWithCache, Storage } from '@office-ai/aioncli-core';
-import { GeminiApprovalStore } from '../../agent/gemini/GeminiApprovalStore';
-import { ToolConfirmationOutcome } from '../../agent/gemini/cli/tools/tools';
-import { getDatabase } from '@process/database';
-import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
+import { GeminiApprovalStore } from '../agent/gemini/GeminiApprovalStore';
+import { ToolConfirmationOutcome } from '../agent/gemini/cli/tools/tools';
+import { getDatabase } from '@process/services/database';
+import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '@process/utils/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
-import { handlePreviewOpenEvent } from '../utils/previewUtils';
+import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
-import { mainLog, mainWarn, mainError } from '../utils/mainLogger';
+import { mainLog, mainWarn, mainError } from '@process/utils/mainLogger';
 import { hasCronCommands } from './CronCommandDetector';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 import { stripThinkTags } from './ThinkTagDetector';
@@ -78,7 +78,7 @@ export class GeminiAgentManager extends BaseAgentManager<
 
   private async injectHistoryFromDatabase(): Promise<void> {
     try {
-      const result = getDatabase().getConversationMessages(this.conversation_id, 0, 10000);
+      const result = (await getDatabase()).getConversationMessages(this.conversation_id, 0, 10000);
       const data = (result.data || []) as TMessage[];
       const lines = data
         .filter((m): m is IMessageText => m.type === 'text')
@@ -160,18 +160,15 @@ export class GeminiAgentManager extends BaseAgentManager<
           }
         }
 
-        // Build system instructions with skills INDEX only (not full content)
-        // 使用 skills 索引构建系统指令（不注入全文，按需通过 activate_skill 加载）
-        // Builtin skills (e.g. cron) are auto-included in the index by AcpSkillManager
+        // presetRules are now written to GEMINI.md by setupAssistantWorkspace()
+        // and loaded natively by Gemini CLI via loadServerHierarchicalMemory()
+        // Skills are symlinked into .gemini/skills/ and discovered natively by SkillManager
+        // No prompt injection needed -> native mechanisms handle everything
+
+        // Merge builtin skill names into enabledSkills for the worker's skill discovery
+        // 将内置 skill 名称合并到 enabledSkills，使 worker 的 SkillManager 能找到它们
         const skillManager = AcpSkillManager.getInstance(this.enabledSkills);
         await skillManager.discoverSkills(this.enabledSkills);
-        const finalPresetRules = await buildSystemInstructionsWithSkillsIndex({
-          presetContext: this.presetRules,
-          enabledSkills: this.enabledSkills,
-        });
-
-        // Merge builtin skill names into enabledSkills for the worker's activate_skill tool
-        // 将内置 skill 名称合并到 enabledSkills，使 worker 的 activate_skill 能找到它们
         const builtinSkillNames = skillManager.getBuiltinSkillsIndex().map((s) => s.name);
         const allEnabledSkills = [...new Set([...builtinSkillNames, ...(this.enabledSkills || [])])];
 
@@ -193,11 +190,13 @@ export class GeminiAgentManager extends BaseAgentManager<
           webSearchEngine: this.webSearchEngine,
           mcpServers,
           contextFileName: this.contextFileName,
-          presetRules: finalPresetRules,
+          // presetRules are no longer injected here — they are in GEMINI.md
+          // Keep for backward compatibility with existing conversations
+          presetRules: this.presetRules,
           contextContent: this.contextContent,
           skillsDir: getSkillsDir(),
-          // 启用的 skills 列表（含内置 skills），用于 worker 的 activate_skill 工具
-          // Enabled skills list (including builtins) for worker's activate_skill tool
+          // 启用的 skills 列表（含内置 skills），用于 worker 的 SkillManager
+          // Enabled skills list (including builtins) for worker's SkillManager
           enabledSkills: allEnabledSkills,
           // Yolo mode: derived from currentMode, not directly from legacy config
           yoloMode: effectiveYoloMode,
@@ -227,7 +226,7 @@ export class GeminiAgentManager extends BaseAgentManager<
               : '';
         return { n: s.name, e: s.enabled, st: s.status, t: transportKey };
       })
-      .sort((a, b) => a.n.localeCompare(b.n));
+      .toSorted((a, b) => a.n.localeCompare(b.n));
     return JSON.stringify(entries);
   }
 
@@ -323,7 +322,7 @@ export class GeminiAgentManager extends BaseAgentManager<
     // Without this, chat.history.refresh fires before modifyTime is updated,
     // causing stale sorting until a manual page refresh.
     try {
-      getDatabase().updateConversation(this.conversation_id, {});
+      (await getDatabase()).updateConversation(this.conversation_id, {});
     } catch {
       // Conversation might not exist in DB yet
     }
@@ -403,7 +402,11 @@ export class GeminiAgentManager extends BaseAgentManager<
     if (!confirmationDetails) return {};
     let question: string;
     let description: string;
-    const options: Array<{ label: string; value: ToolConfirmationOutcome; params?: Record<string, string> }> = [];
+    const options: Array<{
+      label: string;
+      value: ToolConfirmationOutcome;
+      params?: Record<string, string>;
+    }> = [];
     switch (confirmationDetails.type) {
       case 'edit':
         {
@@ -418,7 +421,10 @@ export class GeminiAgentManager extends BaseAgentManager<
               label: t('messages.confirmation.yesAllowAlways'),
               value: ToolConfirmationOutcome.ProceedAlways,
             },
-            { label: t('messages.confirmation.no'), value: ToolConfirmationOutcome.Cancel }
+            {
+              label: t('messages.confirmation.no'),
+              value: ToolConfirmationOutcome.Cancel,
+            }
           );
         }
         break;
@@ -435,7 +441,10 @@ export class GeminiAgentManager extends BaseAgentManager<
               label: t('messages.confirmation.yesAllowAlways'),
               value: ToolConfirmationOutcome.ProceedAlways,
             },
-            { label: t('messages.confirmation.no'), value: ToolConfirmationOutcome.Cancel }
+            {
+              label: t('messages.confirmation.no'),
+              value: ToolConfirmationOutcome.Cancel,
+            }
           );
         }
         break;
@@ -452,7 +461,10 @@ export class GeminiAgentManager extends BaseAgentManager<
               label: t('messages.confirmation.yesAllowAlways'),
               value: ToolConfirmationOutcome.ProceedAlways,
             },
-            { label: t('messages.confirmation.no'), value: ToolConfirmationOutcome.Cancel }
+            {
+              label: t('messages.confirmation.no'),
+              value: ToolConfirmationOutcome.Cancel,
+            }
           );
         }
         break;
@@ -474,7 +486,10 @@ export class GeminiAgentManager extends BaseAgentManager<
               serverName: mcpProps.serverName,
             }),
             value: ToolConfirmationOutcome.ProceedAlwaysTool,
-            params: { toolName: mcpProps.toolName, serverName: mcpProps.serverName },
+            params: {
+              toolName: mcpProps.toolName,
+              serverName: mcpProps.serverName,
+            },
           },
           {
             label: t('messages.confirmation.yesAlwaysAllowServer', {
@@ -483,7 +498,10 @@ export class GeminiAgentManager extends BaseAgentManager<
             value: ToolConfirmationOutcome.ProceedAlwaysServer,
             params: { serverName: mcpProps.serverName },
           },
-          { label: t('messages.confirmation.no'), value: ToolConfirmationOutcome.Cancel }
+          {
+            label: t('messages.confirmation.no'),
+            value: ToolConfirmationOutcome.Cancel,
+          }
         );
       }
     }
@@ -540,8 +558,14 @@ export class GeminiAgentManager extends BaseAgentManager<
             description: content.description || content.name || 'Tool requires confirmation',
             callId: content.callId,
             options: [
-              { label: 'messages.confirmation.yesAllowOnce', value: ToolConfirmationOutcome.ProceedOnce },
-              { label: 'messages.confirmation.no', value: ToolConfirmationOutcome.Cancel },
+              {
+                label: 'messages.confirmation.yesAllowOnce',
+                value: ToolConfirmationOutcome.ProceedOnce,
+              },
+              {
+                label: 'messages.confirmation.no',
+                value: ToolConfirmationOutcome.Cancel,
+              },
             ],
           });
           return;
@@ -668,8 +692,8 @@ export class GeminiAgentManager extends BaseAgentManager<
    */
   private async checkCronCommandsOnFinish(afterTimestamp: number): Promise<boolean> {
     try {
-      const { getDatabase } = await import('@process/database');
-      const db = getDatabase();
+      const { getDatabase } = await import('@process/services/database');
+      const db = await getDatabase();
       const result = db.getConversationMessages(this.conversation_id, 0, 20, 'DESC');
 
       if (!result.data || result.data.length === 0) {
@@ -787,9 +811,9 @@ export class GeminiAgentManager extends BaseAgentManager<
    * Save session mode to database for resume support.
    * 保存会话模式到数据库以支持恢复。
    */
-  private saveSessionMode(mode: string): void {
+  private async saveSessionMode(mode: string): Promise<void> {
     try {
-      const db = getDatabase();
+      const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
       if (result.success && result.data && result.data.type === 'gemini') {
         const conversation = result.data;
@@ -797,7 +821,9 @@ export class GeminiAgentManager extends BaseAgentManager<
           ...conversation.extra,
           sessionMode: mode,
         };
-        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+        db.updateConversation(this.conversation_id, {
+          extra: updatedExtra,
+        } as Partial<typeof conversation>);
       }
     } catch (error) {
       mainError('[GeminiAgentManager]', 'Failed to save session mode', error);
@@ -813,7 +839,10 @@ export class GeminiAgentManager extends BaseAgentManager<
     try {
       const config = await ProcessConfig.get('gemini.config');
       if (config?.yoloMode) {
-        await ProcessConfig.set('gemini.config', { ...config, yoloMode: false });
+        await ProcessConfig.set('gemini.config', {
+          ...config,
+          yoloMode: false,
+        });
       }
     } catch (error) {
       mainError('[GeminiAgentManager]', 'Failed to clear legacy yoloMode config', error);

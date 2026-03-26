@@ -22,7 +22,9 @@ Object.defineProperty(window, 'matchMedia', {
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
+    i18n: { language: 'en-US' },
   }),
+  initReactI18next: { type: '3rdParty', init: () => {} },
 }));
 
 vi.mock('@arco-design/web-react', async (importOriginal) => {
@@ -44,7 +46,7 @@ vi.mock('@icon-park/react', () => ({
   Link: () => <span data-testid='icon-link' />,
 }));
 
-vi.mock('@/renderer/components/LanguageSwitcher', () => ({
+vi.mock('@/renderer/components/settings/LanguageSwitcher', () => ({
   default: () => <div data-testid='language-switcher' />,
 }));
 
@@ -52,7 +54,7 @@ vi.mock('@/renderer/components/base/AionScrollArea', () => ({
   default: ({ children }: any) => <div data-testid='scroll-area'>{children}</div>,
 }));
 
-vi.mock('@/renderer/components/SettingsModal/settingsViewContext', () => ({
+vi.mock('@/renderer/components/settings/SettingsModal/settingsViewContext', () => ({
   useSettingsViewMode: () => 'modal',
 }));
 
@@ -151,7 +153,7 @@ vi.mock('swr', () => {
   return { default: useSWR, mutate };
 });
 
-import SystemModalContent from '@/renderer/components/SettingsModal/contents/SystemModalContent';
+import SystemModalContent from '@/renderer/components/settings/SettingsModal/contents/SystemModalContent';
 
 describe('SystemModalContent', () => {
   beforeEach(() => {
@@ -163,6 +165,7 @@ describe('SystemModalContent', () => {
     mockGetCdpStatus.mockResolvedValue({
       data: {
         enabled: true,
+        configEnabled: true,
         startupEnabled: true,
         port: 9230,
         isDevMode: true,
@@ -234,6 +237,11 @@ describe('SystemModalContent', () => {
       expect(screen.getByText('settings.openDevTools')).toBeInTheDocument();
     });
 
+    // Wait for the event listener to be registered via useEffect
+    await waitFor(() => {
+      expect(eventCallback).not.toBeNull();
+    });
+
     // Simulate DevTools opened event from main process
     await act(async () => {
       eventCallback?.({ isOpen: true });
@@ -260,6 +268,7 @@ describe('SystemModalContent', () => {
       mockGetCdpStatus.mockResolvedValue({
         data: {
           enabled: false,
+          configEnabled: false,
           startupEnabled: false,
           port: null,
           isDevMode: false,
@@ -286,15 +295,13 @@ describe('SystemModalContent', () => {
         expect(screen.getByText('settings.cdp.enable')).toBeInTheDocument();
       });
 
-      // Find the CDP switch - Arco Switch renders as <button> with arco-switch class
+      // Find the CDP switch - Arco Switch renders as <button role="switch">
       const cdpSection = screen.getByText('settings.cdp.title').parentElement!;
-      const allSwitches = cdpSection.querySelectorAll('button');
-      // The first button in CDP section is the Switch
-      const cdpSwitch = allSwitches[0];
+      const cdpSwitch = cdpSection.querySelector('button[role="switch"]');
       expect(cdpSwitch).toBeTruthy();
 
       await act(async () => {
-        fireEvent.click(cdpSwitch);
+        fireEvent.click(cdpSwitch!);
       });
 
       await waitFor(() => {
@@ -315,11 +322,10 @@ describe('SystemModalContent', () => {
       });
 
       const cdpSection = screen.getByText('settings.cdp.title').parentElement!;
-      const allSwitches = cdpSection.querySelectorAll('button');
-      const cdpSwitch = allSwitches[0];
+      const cdpSwitch = cdpSection.querySelector('button[role="switch"]');
 
       await act(async () => {
-        fireEvent.click(cdpSwitch);
+        fireEvent.click(cdpSwitch!);
       });
 
       await waitFor(() => {
@@ -331,6 +337,7 @@ describe('SystemModalContent', () => {
       mockGetCdpStatus.mockResolvedValue({
         data: {
           enabled: false,
+          configEnabled: true,
           startupEnabled: true,
           port: null,
           isDevMode: true,
@@ -350,6 +357,7 @@ describe('SystemModalContent', () => {
       mockGetCdpStatus.mockResolvedValue({
         data: {
           enabled: false,
+          configEnabled: true,
           startupEnabled: true,
           port: null,
           isDevMode: true,
@@ -374,6 +382,7 @@ describe('SystemModalContent', () => {
       mockGetCdpStatus.mockResolvedValue({
         data: {
           enabled: false,
+          configEnabled: false,
           startupEnabled: false,
           port: null,
           isDevMode: true,

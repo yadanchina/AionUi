@@ -11,9 +11,10 @@
 
 import { AgentFactory } from './AgentFactory';
 import { WorkerTaskManager } from './WorkerTaskManager';
+import { SqliteConversationRepository } from '@process/services/database/SqliteConversationRepository';
 import { GeminiAgentManager } from './GeminiAgentManager';
 import AcpAgentManager from './AcpAgentManager';
-import { CodexAgentManager } from '@/agent/codex';
+import { CodexAgentManager } from '@process/agent/codex';
 import OpenClawAgentManager from './OpenClawAgentManager';
 import NanoBotAgentManager from './NanoBotAgentManager';
 
@@ -65,4 +66,5 @@ agentFactory.register('nanobot', (conv, opts) => {
   }) as unknown as ReturnType<typeof agentFactory.create>;
 });
 
-export const workerTaskManager = new WorkerTaskManager(agentFactory);
+const conversationRepo = new SqliteConversationRepository();
+export const workerTaskManager = new WorkerTaskManager(agentFactory, conversationRepo);

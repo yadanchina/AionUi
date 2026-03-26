@@ -5,11 +5,11 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { IConversationRepository } from '../../src/process/database/IConversationRepository';
+import type { IConversationRepository } from '../../src/process/services/database/IConversationRepository';
 
 vi.mock('electron', () => ({ app: { getPath: vi.fn(() => '/tmp'), isPackaged: false } }));
-vi.mock('../../src/process/initStorage', () => ({ ProcessChat: { get: vi.fn(async () => []) } }));
-vi.mock('../../src/process/services/cron/CronService', () => ({
+vi.mock('../../src/process/utils/initStorage', () => ({ ProcessChat: { get: vi.fn(async () => []) } }));
+vi.mock('../../src/process/services/cron/cronServiceSingleton', () => ({
   cronService: {
     listJobsByConversation: vi.fn(async () => []),
     removeJob: vi.fn(async () => {}),
