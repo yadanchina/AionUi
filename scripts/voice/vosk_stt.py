@@ -99,15 +99,34 @@ def main():
             return
         q.put(bytes(indata))
 
+    # Build candidate device list: chosen first, then system default, then others
+    candidates = [chosen_device["index"]]
+    candidates.append(None)  # None = let PortAudio pick the default
+    for dev in input_devices:
+        if dev["index"] not in candidates:
+            candidates.append(dev["index"])
+
+    stream_kwargs = dict(samplerate=16000, blocksize=8000, dtype="int16", channels=1, callback=callback)
+
+    stream = None
+    open_errors = []
+    for dev_id in candidates:
+        try:
+            stream = sd.RawInputStream(device=dev_id, **stream_kwargs)
+            stream.start()
+            if dev_id != chosen_device["index"]:
+                emit({"type": "info", "fallback_device": dev_id})
+            break
+        except Exception as exc:
+            open_errors.append(f"device {dev_id}: {exc}")
+            stream = None
+
+    if stream is None:
+        emit({"type": "error", "error": f"all audio devices failed: {'; '.join(open_errors)}"})
+        return 3
+
     try:
-        with sd.RawInputStream(
-            samplerate=16000,
-            blocksize=8000,
-            dtype="int16",
-            channels=1,
-            device=chosen_device["index"],
-            callback=callback,
-        ):
+        with stream:
             while not stopped["value"]:
                 try:
                     data = q.get(timeout=0.2)
