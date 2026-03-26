@@ -15,6 +15,7 @@ import { getSystemDir } from '@process/utils/initStorage';
 import { TokenMiddleware } from '@process/webserver/auth/middleware/TokenMiddleware';
 import { ExtensionRegistry } from '@process/extensions';
 import { isActivePreviewPort } from '@process/bridge/pptPreviewBridge';
+import { VOSK_MODEL_ARCHIVE_ROUTE } from '@/common/config/voice';
 import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/config/constants';
 import directoryApi from '../directoryApi';
 import { apiRateLimiter } from '../middleware/security';
@@ -252,6 +253,24 @@ function registerExtensionWebuiRoutes(app: Express, validateApiAccess: RequestHa
   });
 }
 
+function sendVoskModelArchive(_req: Request, res: Response): void {
+  // In dev mode, resourcesPath points to electron's dist, not project root
+  const isDev = !process.resourcesPath || process.resourcesPath.includes('node_modules');
+  const resourcesBase = isDev ? path.join(process.cwd(), 'resources') : process.resourcesPath;
+  const archivePath = path.join(resourcesBase, 'vosk-model.tar.gz');
+
+  if (!fs.existsSync(archivePath)) {
+    res
+      .status(404)
+      .json({ message: 'Vosk model archive not found. Run `bun run build:vosk-model` to generate it.' });
+    return;
+  }
+
+  res.setHeader('Content-Type', 'application/gzip');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.sendFile(archivePath);
+}
+
 /**
  * 注册 API 路由
  * Register API routes
@@ -377,6 +396,16 @@ export function registerApiRoutes(app: Express): void {
       }
     }
   );
+
+  /**
+   * Vosk 模型下载 - Vosk model download
+   * GET /api/vosk-model.tar.gz
+   * Serves the bundled Vosk model tar.gz for vosk-browser (WebAssembly) clients.
+   * The archive is expected at: resources/vosk-model.tar.gz
+   * Generate it with: bun run build:vosk-model
+   */
+  app.get(VOSK_MODEL_ARCHIVE_ROUTE, apiRateLimiter, sendVoskModelArchive);
+  app.get('/api/vosk-model', apiRateLimiter, sendVoskModelArchive);
 
   registerExtensionWebuiRoutes(app, validateApiAccess);
 

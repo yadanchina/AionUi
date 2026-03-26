@@ -15,6 +15,7 @@ import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils
 import { Button, Input, Message, Tag } from '@arco-design/web-react';
 import { ArrowUp, CloseSmall, Microphone, VoiceOff } from '@icon-park/react';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
+import { voiceService } from '@renderer/services/voice';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCompositionInput } from '@renderer/hooks/chat/useCompositionInput';
@@ -209,7 +210,7 @@ const SendBox: React.FC<{
   const [message, context] = Message.useMessage();
 
   useEffect(() => {
-    const unsubscribe = ipcBridge.speech.transcript.on((event) => {
+    const unsubscribe = voiceService.onTranscript((event) => {
       if (event.error) {
         setIsRecording(false);
         voiceBaseRef.current = null;
@@ -358,7 +359,7 @@ const SendBox: React.FC<{
       return;
     }
     if (isRecording) {
-      void ipcBridge.speech.stopVoiceInput.invoke();
+      void voiceService.stop();
       setIsRecording(false);
       voiceBaseRef.current = null;
     }
@@ -396,12 +397,12 @@ const SendBox: React.FC<{
 
   const toggleVoiceInput = useCallback(async () => {
     if (isRecording) {
-      await ipcBridge.speech.stopVoiceInput.invoke();
+      await voiceService.stop();
       setIsRecording(false);
       voiceBaseRef.current = null;
       return;
     }
-    const result = await ipcBridge.speech.startVoiceInput.invoke({});
+    const result = await voiceService.start();
     if (!result.success) {
       message.error(result.msg || t('messages.voiceInputFailed', { defaultValue: 'Voice input failed' }));
       setIsRecording(false);
@@ -414,7 +415,7 @@ const SendBox: React.FC<{
 
   useEffect(() => {
     return () => {
-      void ipcBridge.speech.stopVoiceInput.invoke();
+      void voiceService.stop();
     };
   }, []);
 

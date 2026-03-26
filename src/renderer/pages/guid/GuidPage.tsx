@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
 import { resolveLocaleKey } from '@/common/utils';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import { openExternalUrl } from '@/renderer/utils/platform';
@@ -30,6 +29,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styles from './index.module.css';
+import { voiceService } from '@renderer/services/voice';
 
 const GuidPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -118,7 +118,7 @@ const GuidPage: React.FC = () => {
 
   // --- Coordinated handlers (depend on multiple hooks) ---
   useEffect(() => {
-    const unsubscribe = ipcBridge.speech.transcript.on((event) => {
+    const unsubscribe = voiceService.onTranscript((event) => {
       if (event.error) {
         setIsRecording(false);
         voiceBaseRef.current = null;
@@ -237,13 +237,13 @@ const GuidPage: React.FC = () => {
 
   const toggleVoiceInput = useCallback(async () => {
     if (isRecording) {
-      await ipcBridge.speech.stopVoiceInput.invoke();
+      await voiceService.stop();
       setIsRecording(false);
       voiceBaseRef.current = null;
       return;
     }
 
-    const result = await ipcBridge.speech.startVoiceInput.invoke({});
+    const result = await voiceService.start();
     if (!result.success) {
       messageApi.error(result.msg || t('messages.voiceInputFailed', { defaultValue: 'Voice input failed' }));
       setIsRecording(false);
@@ -257,7 +257,7 @@ const GuidPage: React.FC = () => {
 
   useEffect(() => {
     return () => {
-      void ipcBridge.speech.stopVoiceInput.invoke();
+      void voiceService.stop();
     };
   }, []);
 
@@ -373,6 +373,7 @@ const GuidPage: React.FC = () => {
 
   return (
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
+      {messageContext}
       <div ref={guidContainerRef} className={styles.guidContainer}>
         <SkillsMarketBanner />
         <div className={styles.guidLayout}>

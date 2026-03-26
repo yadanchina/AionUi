@@ -65,6 +65,11 @@ export class AuthMiddleware {
     // Referrer policy
     res.header('Referrer-Policy', SECURITY_CONFIG.HEADERS.REFERRER_POLICY);
 
+    // 跨域隔离头，允许 vosk-browser WebAssembly Worker 使用 SharedArrayBuffer
+    // Cross-origin isolation headers required for vosk-browser WASM worker
+    res.header('Cross-Origin-Opener-Policy', 'same-origin');
+    res.header('Cross-Origin-Embedder-Policy', 'require-corp');
+
     // 内容安全策略（开发环境放宽限制以支持 webpack-dev-server）
     // Content Security Policy (relaxed in development for webpack-dev-server)
     const isDevelopment = process.env.NODE_ENV === 'development';
