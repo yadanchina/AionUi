@@ -18,8 +18,8 @@ import katex from 'katex';
 // Import KaTeX CSS to make it available in the document
 import 'katex/dist/katex.min.css';
 
-import { diffColors } from '@/renderer/theme/colors';
-import { copyText } from '@/renderer/utils/clipboard';
+import { diffColors } from '@/renderer/styles/colors';
+import { copyText } from '@/renderer/utils/ui/clipboard';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import { Message } from '@arco-design/web-react';
 import { Copy, Down, Up } from '@icon-park/react';
@@ -28,9 +28,9 @@ import classNames from 'classnames';
 import React, { useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { addImportantToAll } from '../utils/customCssProcessor';
-import { convertLatexDelimiters } from '../utils/latexDelimiters';
-import LocalImageView from './LocalImageView';
+import { addImportantToAll } from '@renderer/utils/theme/customCssProcessor';
+import { convertLatexDelimiters } from '@renderer/utils/chat/latexDelimiters';
+import LocalImageView from './media/LocalImageView';
 import TacticalReasoningCard, { type ReasoningCardData } from './TacticalReasoningCard';
 
 const formatCode = (code: string) => {
@@ -692,7 +692,7 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
 
   // 从 ConfigStorage 加载自定义 CSS / Load custom CSS from ConfigStorage
   React.useEffect(() => {
-    void import('@/common/storage').then(({ ConfigStorage }) => {
+    void import('@/common/config/storage').then(({ ConfigStorage }) => {
       ConfigStorage.get('customCss')
         .then((css) => {
           if (css) {

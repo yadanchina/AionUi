@@ -14,11 +14,17 @@ export const copyText = async (text: string): Promise<void> => {
   }
 
   if (navigator.clipboard && window.isSecureContext) {
-    await navigator.clipboard.writeText(text);
-    return;
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch {
+      // Clipboard API can fail inside Shadow DOM where user activation
+      // does not propagate across the shadow boundary. Fall through to
+      // the execCommand fallback below.
+    }
   }
 
-  // Fallback for non-secure contexts (WebUI over HTTP)
+  // Fallback for non-secure contexts (WebUI over HTTP) or Shadow DOM
   const previousActiveElement = document.activeElement as HTMLElement | null;
   const textArea = document.createElement('textarea');
   textArea.value = text;
