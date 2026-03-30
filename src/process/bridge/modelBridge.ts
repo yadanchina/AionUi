@@ -87,9 +87,9 @@ export function initModelBridge(): void {
   }> {
     // 如果是多key（包含逗号或回车），只取第一个key来获取模型列表
     // If multiple keys (comma or newline separated), use only the first one
-    let actualApiKey = api_key;
-    if (api_key && (api_key.includes(',') || api_key.includes('\n'))) {
-      actualApiKey = api_key.split(/[,\n]/)[0].trim();
+    let actualApiKey = api_key?.trim();
+    if (actualApiKey && (actualApiKey.includes(',') || actualApiKey.includes('\n'))) {
+      actualApiKey = actualApiKey.split(/[,\n]/)[0].trim();
     }
 
     // 如果是 Vertex AI 平台，直接返回 Vertex AI 支持的模型列表
@@ -107,6 +107,8 @@ export function initModelBridge(): void {
       console.log('Using MiniMax model list (text models only)');
       const minimaxModels = [
         // Text/Chat Models - For conversational AI use
+        'MiniMax-M2.7',
+        'MiniMax-M2.5',
         'MiniMax-M2.1', // 230B params, 10B active - Best for programming & reasoning (~60 tokens/sec)
         'MiniMax-M2.1-lightning', // Same as M2.1 but faster (~100 tokens/sec)
         'MiniMax-M2', // 200k context, 128k output - Complex reasoning & function calling
@@ -202,21 +204,26 @@ export function initModelBridge(): void {
     // new-api 暴露标准的 /v1/models 端点，直接走 OpenAI 路径
     // new-api exposes standard /v1/models endpoint, use OpenAI path directly
     if (isNewApiPlatform(platform)) {
+      // Validate API key before creating OpenAI client to avoid unhandled 'Missing credentials' error
+      if (!actualApiKey) {
+        return { success: false, msg: 'API key is required. Please configure your API key in settings.' };
+      }
+
       // 确保 base_url 带有 /v1 后缀 / Ensure base_url has /v1 suffix
       let openaiBaseUrl = base_url?.replace(/\/+$/, '') || '';
       if (openaiBaseUrl && !openaiBaseUrl.endsWith('/v1')) {
         openaiBaseUrl = `${openaiBaseUrl}/v1`;
       }
 
-      const openai = new OpenAI({
-        baseURL: openaiBaseUrl,
-        apiKey: actualApiKey,
-        defaultHeaders: {
-          'User-Agent': 'AionUI/1.0',
-        },
-      });
-
       try {
+        const openai = new OpenAI({
+          baseURL: openaiBaseUrl,
+          apiKey: actualApiKey,
+          defaultHeaders: {
+            'User-Agent': 'AionUI/1.0',
+          },
+        });
+
         const res = await openai.models.list();
         if (res.data?.length === 0) {
           throw new Error('Invalid response: empty data');
@@ -360,17 +367,17 @@ export function initModelBridge(): void {
       return { success: false, msg: 'API key is required. Please configure your API key in settings.' };
     }
 
-    const openai = new OpenAI({
-      baseURL: base_url,
-      apiKey: actualApiKey,
-      // 使用自定义 User-Agent，避免某些 API 中转站（如 packyapi）拦截 OpenAI SDK 默认的 User-Agent
-      // Use custom User-Agent to avoid some API proxies (like packyapi) blocking OpenAI SDK's default User-Agent
-      defaultHeaders: {
-        'User-Agent': 'AionUI/1.0',
-      },
-    });
-
     try {
+      const openai = new OpenAI({
+        baseURL: base_url,
+        apiKey: actualApiKey,
+        // 使用自定义 User-Agent，避免某些 API 中转站（如 packyapi）拦截 OpenAI SDK 默认的 User-Agent
+        // Use custom User-Agent to avoid some API proxies (like packyapi) blocking OpenAI SDK's default User-Agent
+        defaultHeaders: {
+          'User-Agent': 'AionUI/1.0',
+        },
+      });
+
       const res = await openai.models.list();
       // 检查返回的数据是否有效，LM Studio 获取失败时仍会返回空数据
       // Check if response data is valid, LM Studio returns empty data on failure

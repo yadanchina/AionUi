@@ -8,6 +8,9 @@ import { resolveLocaleKey } from '@/common/utils';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import { useConversationTabs } from '@/renderer/pages/conversation/hooks/ConversationTabsContext';
+import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
+import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
+import { useSpeechInputMode } from '@/renderer/hooks/system/useSpeechInputMode';
 import AgentPillBar from './components/AgentPillBar';
 import AssistantSelectionArea from './components/AssistantSelectionArea';
 import { AgentPillBarSkeleton, AssistantsSkeleton } from './components/GuidSkeleton';
@@ -42,6 +45,7 @@ const GuidPage: React.FC = () => {
   const localeKey = resolveLocaleKey(i18n.language);
   const [messageApi, messageContext] = Message.useMessage();
   const [isRecording, setIsRecording] = useState(false);
+  const { mode: speechInputMode } = useSpeechInputMode();
 
   // Open external link
   const openLink = useCallback(async (url: string) => {
@@ -144,6 +148,15 @@ const GuidPage: React.FC = () => {
     return unsubscribe;
   }, [guidInput.input, guidInput.setInput, messageApi]);
 
+  const handleGuidSubmit = useCallback(() => {
+    if (speechInputMode === 'local' && isRecording) {
+      void voiceService.stop();
+      setIsRecording(false);
+      voiceBaseRef.current = null;
+    }
+    send.sendMessageHandler();
+  }, [isRecording, send.sendMessageHandler, speechInputMode]);
+
   const handleInputChange = useCallback(
     (value: string) => {
       guidInput.setInput(value);
@@ -229,10 +242,10 @@ const GuidPage: React.FC = () => {
       if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
         if (!guidInput.input.trim()) return;
-        send.sendMessageHandler();
+        handleGuidSubmit();
       }
     },
-    [mention, guidInput.input, send.sendMessageHandler]
+    [guidInput.input, handleGuidSubmit, mention]
   );
 
   const toggleVoiceInput = useCallback(async () => {
@@ -260,6 +273,16 @@ const GuidPage: React.FC = () => {
       void voiceService.stop();
     };
   }, []);
+
+  useEffect(() => {
+    if (speechInputMode === 'local' || !isRecording) {
+      return;
+    }
+
+    void voiceService.stop();
+    setIsRecording(false);
+    voiceBaseRef.current = null;
+  }, [isRecording, speechInputMode]);
 
   const handleSelectAgentFromPillBar = useCallback(
     (key: string) => {
@@ -293,6 +316,13 @@ const GuidPage: React.FC = () => {
       mention.setMentionSelectorOpen,
       mention.setMentionActiveIndex,
     ]
+  );
+
+  const handleSpeechTranscript = useCallback(
+    (transcript: string) => {
+      guidInput.setInput((current) => appendSpeechTranscript(current, transcript));
+    },
+    [guidInput.setInput]
   );
 
   // Typewriter placeholder
@@ -329,6 +359,31 @@ const GuidPage: React.FC = () => {
     />
   );
 
+  const speechInputNode =
+    speechInputMode === 'remote' ? (
+      <SpeechInputButton
+        disabled={guidInput.loading}
+        locale={i18n.language || 'en-US'}
+        onTranscript={handleSpeechTranscript}
+      />
+    ) : (
+      <Button
+        shape='circle'
+        type={isRecording ? 'primary' : 'secondary'}
+        disabled={guidInput.loading}
+        onClick={() => {
+          void toggleVoiceInput();
+        }}
+        icon={
+          isRecording ? (
+            <VoiceOff theme='filled' size='14' fill='currentColor' />
+          ) : (
+            <Microphone theme='outline' size='14' fill='currentColor' strokeWidth={2} />
+          )
+        }
+      />
+    );
+
   // Build the action row
   const actionRowNode = (
     <GuidActionRow
@@ -347,27 +402,8 @@ const GuidPage: React.FC = () => {
       onClosePresetTag={() => agentSelection.setSelectedAgentKey('gemini')}
       loading={guidInput.loading}
       isButtonDisabled={send.isButtonDisabled}
-      onSend={() => {
-        send.handleSend().catch((error) => {
-          console.error('Failed to send message:', error);
-        });
-      }}
-      voiceInputButton={
-        <Button
-          shape='circle'
-          type={isRecording ? 'primary' : 'secondary'}
-          onClick={() => {
-            void toggleVoiceInput();
-          }}
-          icon={
-            isRecording ? (
-              <VoiceOff theme='filled' size='14' fill='currentColor' />
-            ) : (
-              <Microphone theme='outline' size='14' fill='currentColor' strokeWidth={2} />
-            )
-          }
-        />
-      }
+      speechInputNode={speechInputNode}
+      onSend={handleGuidSubmit}
     />
   );
 

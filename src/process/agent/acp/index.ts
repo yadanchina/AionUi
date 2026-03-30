@@ -104,8 +104,14 @@ export interface AcpAgentConfig {
     agentName?: string;
     /** ACP session ID for resume support / ACP session ID 用于会话恢复 */
     acpSessionId?: string;
+    /** Conversation ID that owns the ACP session / 拥有该 ACP session 的会话 ID */
+    acpSessionConversationId?: string;
     /** Last update time of ACP session / ACP session 最后更新时间 */
     acpSessionUpdatedAt?: number;
+    /** Initial model ID to apply at session start (from channel config or persisted user choice) */
+    currentModelId?: string;
+    /** Initial session mode to apply at session start (e.g., acceptEdits, auto, dontAsk, plan) */
+    sessionMode?: string;
   };
   onStreamEvent: (data: IResponseMessage) => void;
   onSignalEvent?: (data: IResponseMessage) => void; // 新增：仅发送信号，不更新UI
@@ -130,8 +136,14 @@ export class AcpAgent {
     agentName?: string;
     /** ACP session ID for resume support / ACP session ID 用于会话恢复 */
     acpSessionId?: string;
+    /** Conversation ID that owns the ACP session / 拥有该 ACP session 的会话 ID */
+    acpSessionConversationId?: string;
     /** Last update time of ACP session / ACP session 最后更新时间 */
     acpSessionUpdatedAt?: number;
+    /** Initial model ID to apply at session start (from channel config or persisted user choice) */
+    currentModelId?: string;
+    /** Initial session mode to apply at session start (e.g., acceptEdits, auto, dontAsk, plan) */
+    sessionMode?: string;
   };
   private connection: AcpConnection;
   private adapter: AcpAdapter;
@@ -249,20 +261,32 @@ export class AcpAgent {
     this.onStreamEvent(previewMessage);
   }
 
+  private getConnectTimeoutMs(): number {
+    if (this.extra.backend === 'codex') {
+      return 150000;
+    }
+
+    return 70000;
+  }
+
   // 启动ACP连接和会话
   async start(): Promise<void> {
     const startTotal = Date.now();
     try {
       this.emitStatusMessage('connecting');
 
-      let connectTimeoutId: NodeJS.Timeout | null = null;
-      const connectTimeoutPromise = new Promise<never>((_, reject) => {
-        connectTimeoutId = setTimeout(() => reject(new Error('Connection timeout after 70 seconds')), 70000);
-      });
-
       const connectStart = Date.now();
-      try {
-        const tryConnect = async () => {
+      const tryConnect = async () => {
+        const connectTimeoutMs = this.getConnectTimeoutMs();
+        let connectTimeoutId: NodeJS.Timeout | null = null;
+
+        try {
+          const connectTimeoutPromise = new Promise<never>((_, reject) => {
+            connectTimeoutId = setTimeout(() => {
+              reject(new Error(`Connection timeout after ${Math.floor(connectTimeoutMs / 1000)} seconds`));
+            }, connectTimeoutMs);
+          });
+
           await Promise.race([
             this.connection.connect(
               this.extra.backend,
@@ -273,25 +297,25 @@ export class AcpAgent {
             ),
             connectTimeoutPromise,
           ]);
-        };
+        } finally {
+          if (connectTimeoutId) {
+            clearTimeout(connectTimeoutId);
+          }
+        }
+      };
 
-        try {
-          await tryConnect();
-        } catch (firstError) {
-          // Transient startup failures (env race / process warmup) are common on first try.
-          // Retry once after a short backoff to reduce "need multiple clicks to connect".
-          console.warn(
-            '[ACP] First connect attempt failed, retrying once:',
-            firstError instanceof Error ? firstError.message : String(firstError)
-          );
-          await this.connection.disconnect();
-          await new Promise((resolve) => setTimeout(resolve, 300));
-          await tryConnect();
-        }
-      } finally {
-        if (connectTimeoutId) {
-          clearTimeout(connectTimeoutId);
-        }
+      try {
+        await tryConnect();
+      } catch (firstError) {
+        // Transient startup failures (env race / process warmup) are common on first try.
+        // Retry once after a short backoff to reduce "need multiple clicks to connect".
+        console.warn(
+          '[ACP] First connect attempt failed, retrying once:',
+          firstError instanceof Error ? firstError.message : String(firstError)
+        );
+        await this.connection.disconnect();
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        await tryConnect();
       }
       if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: connection.connect() completed ${Date.now() - connectStart}ms`);
 
@@ -319,18 +343,12 @@ export class AcpAgent {
         };
         const sessionMode = yoloModeMap[this.extra.backend];
         if (sessionMode) {
-          try {
-            const modeStart = Date.now();
-            await this.connection.setSessionMode(sessionMode);
-            if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: session mode set ${Date.now() - modeStart}ms`);
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            throw new Error(
-              `[ACP] Failed to enable ${this.extra.backend} YOLO mode (${sessionMode}): ${errorMessage}`,
-              { cause: error }
-            );
-          }
+          await this.applySessionMode(sessionMode, true, `${this.extra.backend} YOLO mode`);
         }
+      } else if (this.extra.sessionMode && this.extra.sessionMode !== 'default') {
+        // Apply non-default, non-YOLO session mode (e.g., acceptEdits, auto, dontAsk, plan)
+        // so the CLI backend reflects the mode selected by the user on the Guid page.
+        await this.applySessionMode(this.extra.sessionMode, false, `session mode`);
       }
 
       // Apply model from ~/.claude/settings.json for Claude backend.
@@ -361,6 +379,16 @@ export class AcpAgent {
             }
           }
         }
+      } else if (this.extra.currentModelId) {
+        // For non-claude backends (e.g. gemini-cli), apply the model configured in
+        // channel settings or persisted from a prior user model switch.
+        try {
+          await this.connection.setModel(this.extra.currentModelId);
+        } catch (error) {
+          console.warn(
+            `[ACP] Failed to set model "${this.extra.currentModelId}": ${error instanceof Error ? error.message : String(error)}`
+          );
+        }
       }
 
       // Emit initial model info after session setup completes
@@ -372,6 +400,26 @@ export class AcpAgent {
       if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: failed after ${Date.now() - startTotal}ms`);
       this.emitStatusMessage('error');
       throw error;
+    }
+  }
+
+  /**
+   * Apply a session mode via the ACP connection.
+   * @param mode   The mode string to set (e.g., 'bypassPermissions', 'acceptEdits').
+   * @param fatal  If true, throw on failure (YOLO — must succeed); if false, warn and continue.
+   * @param label  Human-readable label for log messages (e.g., 'claude YOLO mode').
+   */
+  private async applySessionMode(mode: string, fatal: boolean, label: string): Promise<void> {
+    try {
+      const modeStart = Date.now();
+      await this.connection.setSessionMode(mode);
+      if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: session mode set ${Date.now() - modeStart}ms`);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (fatal) {
+        throw new Error(`[ACP] Failed to enable ${label} (${mode}): ${msg}`, { cause: error });
+      }
+      console.warn(`[ACP] Failed to set session mode "${mode}": ${msg}`);
     }
   }
 
@@ -1398,12 +1446,16 @@ export class AcpAgent {
    */
   private async createOrResumeSession(): Promise<void> {
     const resumeSessionId = this.extra.acpSessionId;
+    const resumeConversationId = this.extra.acpSessionConversationId;
     const mcpServers = await this.loadBuiltinSessionMcpServers();
 
-    // If we have a stored session ID, attempt to resume it.
-    // Resume can fail when the ACP bridge package changed (e.g. claude-code-acp → claude-agent-acp)
-    // or the session simply expired. In that case, fall back to creating a fresh session.
-    if (resumeSessionId) {
+    // Validate session ownership: only resume if the stored session belongs to this conversation.
+    if (resumeSessionId && resumeConversationId && resumeConversationId !== this.id) {
+      console.warn(
+        `[AcpAgent] Session ${resumeSessionId} belongs to conversation ${resumeConversationId}, ` +
+          `but current conversation is ${this.id}. Discarding stale session and starting fresh.`
+      );
+    } else if (resumeSessionId) {
       try {
         let response: { sessionId?: string };
 

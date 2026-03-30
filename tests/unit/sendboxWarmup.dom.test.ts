@@ -85,16 +85,22 @@ vi.mock('@arco-design/web-react', () => ({
     useMessage: () => [{ warning: vi.fn() }, null],
   },
   Tag: ({ children }: { children: React.ReactNode }) => React.createElement('div', {}, children),
+  Tooltip: ({ children }: { children: React.ReactNode }) => React.createElement(React.Fragment, {}, children),
 }));
 
 vi.mock('@icon-park/react', () => ({
   ArrowUp: () => React.createElement('span', {}, 'ArrowUp'),
   CloseSmall: () => React.createElement('span', {}, 'CloseSmall'),
+  Microphone: () => React.createElement('span', {}, 'Microphone'),
+  VoiceOff: () => React.createElement('span', {}, 'VoiceOff'),
 }));
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
+    i18n: {
+      language: 'en-US',
+    },
   }),
 }));
 
@@ -122,9 +128,29 @@ vi.mock('@/renderer/hooks/chat/useSlashCommandController', () => ({
   }),
 }));
 
+vi.mock('@/renderer/components/chat/SpeechInputButton', () => ({
+  __esModule: true,
+  default: () => React.createElement('div', {}, 'SpeechInputButton'),
+}));
+
+vi.mock('@/renderer/hooks/system/useSpeechInputMode', () => ({
+  useSpeechInputMode: () => ({
+    isLoaded: true,
+    mode: 'remote',
+  }),
+}));
+
 vi.mock('@/renderer/utils/ui/focus', () => ({
   blurActiveElement: vi.fn(),
   shouldBlockMobileInputFocus: vi.fn(() => false),
+}));
+
+vi.mock('@renderer/services/voice', () => ({
+  voiceService: {
+    onTranscript: vi.fn(() => vi.fn()),
+    start: vi.fn(async () => ({ success: true })),
+    stop: vi.fn(async () => undefined),
+  },
 }));
 
 import SendBox from '@/renderer/components/chat/sendbox';

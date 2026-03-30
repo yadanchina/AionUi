@@ -3,10 +3,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('electron', () => ({ app: { isPackaged: false, getPath: vi.fn(() => '/tmp') } }));
 
 // Capture provider handlers so tests can invoke them directly
-const handlers: Record<string, (...args: any[]) => any> = {};
+type ProviderHandler = (...args: unknown[]) => unknown;
+
+const handlers: Record<string, ProviderHandler> = {};
 function makeChannel(name: string) {
   return {
-    provider: vi.fn((fn: (...args: any[]) => any) => {
+    provider: vi.fn((fn: ProviderHandler) => {
       handlers[name] = fn;
     }),
     emit: vi.fn(),
@@ -27,6 +29,7 @@ vi.mock('../../src/common', () => ({
       stop: makeChannel('stop'),
       sendMessage: makeChannel('sendMessage'),
       getSlashCommands: makeChannel('getSlashCommands'),
+      askSideQuestion: makeChannel('askSideQuestion'),
       reloadContext: makeChannel('reloadContext'),
       getWorkspace: makeChannel('getWorkspace'),
       responseSearchWorkSpace: makeChannel('responseSearchWorkSpace'),
@@ -49,6 +52,7 @@ vi.mock('../../src/common', () => ({
 vi.mock('../../src/process/utils/initStorage', () => ({
   ProcessChat: { get: vi.fn(async () => []) },
   getSkillsDir: vi.fn(() => '/skills'),
+  ProcessConfig: { get: vi.fn(async () => []) },
 }));
 
 vi.mock('../../src/process/bridge/migrationUtils', () => ({
@@ -194,6 +198,58 @@ describe('conversationBridge', () => {
     });
   });
 
+  describe('getWorkspace — ENOENT handling', () => {
+    it('returns empty array when buildFileServer throws', async () => {
+      const geminiMod = await vi.importMock<typeof import('../../src/agent/gemini')>('../../src/agent/gemini');
+      geminiMod.GeminiAgent.buildFileServer.mockImplementation(() => {
+        throw new Error('ENOENT: no such file or directory');
+      });
+
+      const handler = handlers['getWorkspace'];
+      const result = await handler({ workspace: '/missing/path', path: '/missing/path', search: '' });
+
+      expect(result).toEqual([]);
+      geminiMod.GeminiAgent.buildFileServer.mockReturnValue({});
+    });
+
+    it('returns empty array when readDirectoryRecursive rejects with ENOENT', async () => {
+      const utilsMod = await vi.importMock<typeof import('../../src/process/utils')>('../../src/process/utils');
+      utilsMod.readDirectoryRecursive.mockRejectedValueOnce(new Error('ENOENT: no such file or directory, stat'));
+
+      const handler = handlers['getWorkspace'];
+      const result = await handler({ workspace: '/missing', path: '/missing', search: '' });
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('sendMessage — copyFilesToDirectory failure', () => {
+    it('does not reject when copyFilesToDirectory throws ENOENT', async () => {
+      const utilsMod = await vi.importMock<typeof import('../../src/process/utils')>('../../src/process/utils');
+      utilsMod.copyFilesToDirectory.mockRejectedValueOnce(new Error('ENOENT: no such file or directory, stat'));
+
+      const mockTask = {
+        workspace: '/deleted/workspace',
+        sendMessage: vi.fn().mockResolvedValue(undefined),
+      };
+      const tm = makeTaskManager({
+        getOrBuildTask: vi.fn().mockResolvedValue(mockTask),
+      });
+      initConversationBridge(service, tm);
+
+      const handler = handlers['sendMessage'];
+      const result = await handler({
+        conversation_id: 'c1',
+        input: 'hello',
+        files: ['/some/file.txt'],
+      });
+
+      expect(result).toEqual({ success: true });
+      // sendMessage should still be called with empty files array
+      expect(mockTask.sendMessage).toHaveBeenCalled();
+    });
+  });
+
   describe('warmup', () => {
     it('calls getOrBuildTask for the given conversation_id', async () => {
       const handler = handlers['warmup'];
@@ -204,8 +260,10 @@ describe('conversationBridge', () => {
 
     it('calls initAgent() when task type is "acp"', async () => {
       const initAgent = vi.fn();
-      const acpTask = { type: 'acp', initAgent };
-      vi.mocked(taskManager.getOrBuildTask).mockResolvedValue(acpTask as any);
+      const acpTask = { type: 'acp', initAgent } as unknown as Awaited<
+        ReturnType<IWorkerTaskManager['getOrBuildTask']>
+      >;
+      vi.mocked(taskManager.getOrBuildTask).mockResolvedValue(acpTask);
 
       const handler = handlers['warmup'];
       await handler({ conversation_id: 'acp-id' });
@@ -216,8 +274,11 @@ describe('conversationBridge', () => {
 
     it('does not call initAgent when task type is not "acp"', async () => {
       const initAgent = vi.fn();
-      const geminiTask = { type: 'gemini', initAgent };
-      vi.mocked(taskManager.getOrBuildTask).mockResolvedValue(geminiTask as any);
+      const geminiTask = {
+        type: 'gemini',
+        initAgent,
+      } as unknown as Awaited<ReturnType<IWorkerTaskManager['getOrBuildTask']>>;
+      vi.mocked(taskManager.getOrBuildTask).mockResolvedValue(geminiTask);
 
       const handler = handlers['warmup'];
       await handler({ conversation_id: 'gemini-id' });

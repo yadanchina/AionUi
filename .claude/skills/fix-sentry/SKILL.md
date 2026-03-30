@@ -12,6 +12,24 @@ Automated workflow: Sentry issues → analyze → fix → GitHub Issue → PR.
 
 **Announce at start:** "I'm using fix-sentry skill to find and fix high-frequency Sentry issues."
 
+## Operating Modes
+
+### Batch Mode (default)
+
+Invocation: `/fix-sentry` or `/fix-sentry threshold=50`
+
+- Uses the specified threshold (default 100) to fetch issues
+- Runs full Phase 1 → Phase 2 → Phase 3
+- Fixes all qualifying issues
+
+### Daemon Mode
+
+Invocation: `/fix-sentry limit=1` (from daemon script)
+
+- Phase 1 uses **adaptive threshold descent**: starts at 100, lowers progressively until a fixable issue is found
+- Fixes only 1 issue (controlled by `limit` parameter), then exits
+- If no fixable issue exists at any threshold → outputs `[NO_FIXABLE_ISSUES]` and exits
+
 ## Prerequisites
 
 - **Sentry MCP** must be configured (global or project scope) with `mcp__sentry__*` tools available
@@ -31,18 +49,98 @@ git branch --show-current
 
 If working directory is dirty, **STOP** and ask user to commit or stash first.
 
-#### Step 1.2: Fetch High-Frequency Unresolved Issues
+#### Step 1.1b: Load Skip List (Daemon Mode Only)
+
+In daemon mode (`limit > 0`), load the skip list to avoid re-analyzing issues that were already
+triaged in previous sessions. The skip list is stored at:
+
+```
+~/.aionui-fix-sentry/skip-list.json
+```
+
+Format:
+
+```json
+{
+  "ELECTRON-6X": { "reason": "already_fixed", "expires": "2026-03-28T03:00:00Z", "summary": "PR #1758 merged" },
+  "ELECTRON-A7": { "reason": "system_level", "expires": "2026-04-03T03:00:00Z", "summary": "EPIPE in net.Socket" }
+}
+```
+
+**On load:**
+
+1. Read the file (if it doesn't exist, start with an empty skip list)
+2. Remove all entries where `expires` < current time (expired entries get re-analyzed)
+3. Keep the remaining entries as the active skip list
+
+**During Phase 1.2 (Fetch Issues):**
+
+When iterating through fetched issues, if an issue's short ID (e.g., `ELECTRON-6X`) is in the
+active skip list, **skip it immediately** without calling `get_issue_details` or doing any analysis.
+Log the skip: `Skipping ELECTRON-6X (cached: already_fixed — PR #1758 merged)`
+
+**In batch mode (`limit=0`):** skip list is ignored — always analyze everything fresh.
+
+#### Step 1.2: Fetch Unresolved Issues
 
 **Always include `is:unresolved`** to exclude issues already marked as resolved in Sentry.
 
+##### Batch mode (no `limit` parameter or `limit=0`)
+
+Use the specified `threshold` parameter (default 100) directly:
+
 ```
 mcp__sentry__list_issues(
-  projectSlugOrId="electron",
-  query="times_seen:>100 is:unresolved",
+  projectSlugOrId="<project>",
+  query="times_seen:><threshold> is:unresolved",
   sort="freq",
   limit=25
 )
 ```
+
+##### Daemon mode (`limit > 0`): Adaptive Threshold Descent
+
+When `limit` is set, use **adaptive threshold descent** to find fixable issues. Start high and
+lower progressively — this ensures the most impactful issues are fixed first.
+
+**Threshold sequence:** 100 → 80 → 60 → 40 → 20 → 10
+
+For each threshold in the sequence:
+
+1. Fetch issues: `mcp__sentry__list_issues(query="times_seen:><threshold> is:unresolved", sort="freq", limit=25)`
+2. Run Steps 1.3–1.6 (filter, deduplicate, triage)
+3. If any "Needs fix" issues are found → proceed to Phase 2 with the top `limit` issues
+4. If all issues are skipped (already fixed, system-level, unfixable) → log and try the next lower threshold
+
+If **all thresholds are exhausted** with no fixable issues, enter **Deep Analysis Mode** (Step 1.2b).
+
+##### Step 1.2b: Deep Analysis Mode — Issues Without Stack Traces
+
+When no fixable issues remain at any standard threshold, search for issues that lack stack traces
+but may still be fixable through code analysis:
+
+```
+mcp__sentry__list_issues(
+  projectSlugOrId="<project>",
+  query="!has:stacktrace is:unresolved",
+  sort="freq",
+  limit=10
+)
+```
+
+For these issues, apply **Step C (Defensive fix)** logic from Step 1.6:
+
+- Extract distinctive patterns from the error message (file names, paths, keywords)
+- Search the codebase for matching code paths
+- If a matching code path is found → classify as "Defensive fix" and proceed to Phase 2
+
+If deep analysis also yields no fixable issues, output the following **exact text** and exit:
+
+```
+[NO_FIXABLE_ISSUES] All thresholds exhausted, no actionable issues found.
+```
+
+**This marker is machine-readable** — the daemon script uses it to determine backoff timing.
 
 #### Step 1.3: Evidence-Based Filtering
 
@@ -121,102 +219,21 @@ Extract:
 
 #### Step 1.6: Triage — Can We Fix It?
 
-Classify each issue group into one of four categories using the decision flow below.
+Classify each issue group using the detailed decision flow in [references/triage-rules.md](references/triage-rules.md).
 
-##### Step A: Skip — System-level or framework-internal errors
+**Quick reference — six categories:**
 
-These errors originate outside our codebase and cannot be fixed by application code changes.
-**Skip immediately** without further analysis.
+| Category          | Action                                                   |
+| ----------------- | -------------------------------------------------------- |
+| **Direct fix**    | Stack trace → our code → fix                             |
+| **Defensive fix** | No trace, but pattern matches our code → fix with guards |
+| **Pending merge** | Open PR exists → skip or improve                         |
+| **Already fixed** | Merged PR / resolved → skip                              |
+| **System-level**  | EPIPE, ENOSPC, EIO, uv, Chromium → skip                  |
+| **Unfixable**     | No trace, no matching code → skip                        |
 
-| Error pattern                       | Source              | Action |
-| ----------------------------------- | ------------------- | ------ |
-| `write EPIPE` / `broken pipe`       | OS pipe closed      | Skip   |
-| `ENOSPC: no space left on device`   | Disk full           | Skip   |
-| `write EIO` (no app code in stack)  | I/O hardware/driver | Skip   |
-| `uv__loop_interrupt`                | libuv internal      | Skip   |
-| `SingletonCookie` / `SingletonLock` | Chromium internal   | Skip   |
-| `ERR_INTERNET_DISCONNECTED`         | Network offline     | Skip   |
-
-##### Step B: Direct fix — Stack trace points to our code
-
-When a stack trace is available and points to our codebase:
-
-| Criteria                                                   | Result |
-| ---------------------------------------------------------- | ------ |
-| Stack trace points to `src/` files in our repo             | Fix    |
-| Error cause is clear from trace                            | Fix    |
-| Fix is straightforward (null check, try-catch, type guard) | Fix    |
-| Stack trace points to third-party lib only (no app code)   | Skip   |
-| Fix requires architectural redesign                        | Skip   |
-
-**Note on file paths:** Sentry stack traces reference build output paths (e.g., `src/common/chatLib.ts`).
-After refactoring, files may have moved (e.g., → `src/common/chat/chatLib.ts`).
-Use `Glob` to locate the actual file in the current codebase.
-
-##### Step C: Defensive fix — No stack trace, but error pattern is identifiable
-
-Some errors (especially native Node.js `fs`, `net` errors) are reported **without stack traces**.
-These should NOT be automatically skipped — the error message itself often contains enough
-information to locate the responsible code.
-
-**Approach:** Extract distinctive patterns from the error message (file name fragments, path
-structures, keywords), then search the codebase for code that produces or consumes matching
-patterns. If a matching code path is found, trace its error handling and apply a defensive fix
-(guards, try-catch, existence checks) even without 100% certainty it's the exact source.
-
-| Scenario                                                | Result        |
-| ------------------------------------------------------- | ------------- |
-| Error pattern matches a code path in our codebase       | Defensive fix |
-| Error is purely user-specific with no matching code     | Skip          |
-| Error references app-internal files (config, resources) | Defensive fix |
-
-##### Step D: Skip filters (apply to all categories)
-
-| Condition                                  | Action                        |
-| ------------------------------------------ | ----------------------------- |
-| Has merged PR / mentioned in release notes | Skip (already fixed)          |
-| Resolved with `inRelease` in Sentry        | Skip (already fixed)          |
-| Has OPEN PR addressing the root cause      | Skip (or improve existing PR) |
-
-##### Classification summary
-
-Each issue ends up in one of these categories:
-
-| Category          | Criteria                                           | Action                        |
-| ----------------- | -------------------------------------------------- | ----------------------------- |
-| **Direct fix**    | Stack trace → our code, clear cause                | Fix with targeted code change |
-| **Defensive fix** | No stack trace, but error path matches our code    | Fix with defensive guards     |
-| **Pending merge** | Existing OPEN PR addresses the root cause          | Skip or improve existing PR   |
-| **Already fixed** | Merged PR / resolved in Sentry                     | Skip                          |
-| **System-level**  | EPIPE, ENOSPC, EIO, uv, Chromium internal          | Skip                          |
-| **Unfixable**     | No stack trace, no matching code path, third-party | Skip                          |
-
-**Output a triage report** to the user before proceeding:
-
-```
-=== Sentry Issue Triage ===
-
-Will fix — direct (N groups):
-  1. [ELECTRON-XX] Error description (N events)
-     → file:line — root cause summary
-
-Will fix — defensive (N groups):
-  1. [ELECTRON-YY] Error description (N events)
-     → Pattern: "batch-export-*.zip" matches createZip in fsBridge.ts
-     → Defensive fix: ensure parent directory exists before write
-
-Fix pending merge (P groups):
-  1. [ELECTRON-ZZ] Error description (N events)
-     → PR #1234 (OPEN) — fix submitted but not yet merged/deployed
-
-Skipped (M issues):
-  1. [ELECTRON-AA] EPIPE (N events) → System-level: OS pipe closed
-  2. [ELECTRON-BB] SingletonCookie (N events) → Chromium internal
-  3. [ELECTRON-CC] Error (N events) → Already fixed: PR #456 merged
-
-```
-
-Output the triage report for transparency, then **proceed immediately** — do not wait for user confirmation.
+**Output a triage report** (see [references/report-template.md](references/report-template.md) for format),
+then **proceed immediately** — do not wait for user confirmation.
 
 ### Phase 2: Fix Issues (Serial, One Group at a Time)
 
@@ -313,9 +330,7 @@ If tests fail due to the fix, adjust the fix. If tests fail for unrelated reason
 
 #### Step 2.5: Verify Fix
 
-Verification strategy depends on **which process** the error originates from.
-
-**Determine process type from the Sentry stack trace:**
+Verification strategy depends on **which process** the error originates from:
 
 | Culprit path / error origin          | Process  | Verification method |
 | ------------------------------------ | -------- | ------------------- |
@@ -323,52 +338,8 @@ Verification strategy depends on **which process** the error originates from.
 | `src/process/worker/`                | worker   | Unit tests only     |
 | `src/renderer/`, `src/common/` (IPC) | renderer | CDP + unit tests    |
 
-##### Main / Worker process errors → Unit tests only
-
-Most high-frequency Sentry errors originate from the main process (fs, net, cron, IPC bridge
-providers). CDP (Chrome DevTools Protocol) connects to the renderer process and **cannot inspect
-main or worker process errors**.
-
-For these fixes:
-
-1. Unit tests from Step 2.3 are the **primary and sufficient** verification
-2. Quality checks from Step 2.4 must pass
-3. No CDP verification needed — do not attempt it
-4. Mark as **verified** if unit tests pass
-
-##### Renderer process errors → CDP verification
-
-Only use CDP when the error originates from renderer-side code (React components, UI hooks,
-renderer-side IPC calls). These are errors visible in the browser DevTools console.
-
-**Prerequisites:**
-
-- `mcp__chrome-devtools__*` tools must be available
-- CDP is enabled by default in dev mode on port 9230
-- Start the app if not running: `bun run start &`
-  Wait ~20s, then poll `mcp__chrome-devtools__list_pages` until pages appear.
-
-**CRITICAL — MCP session rules:**
-
-1. **NEVER run `claude mcp remove/add` mid-session** — tools become permanently unavailable.
-2. The chrome-devtools MCP server connects to CDP lazily — app can be started during workflow.
-3. If MCP tools return "No such tool", classify as skipped and rely on unit tests.
-
-See [docs/cdp.md](../../docs/cdp.md) for CDP configuration details.
-
-**CDP verification flow:**
-
-1. Navigate to the relevant page using `mcp__chrome-devtools__navigate_page`
-2. Reproduce the error scenario via `click`, `fill`, `press_key`, `evaluate_script`
-3. Check for errors: `list_console_messages`, `take_screenshot`, `list_network_requests`
-4. **Pass**: error no longer occurs. **Fail**: error still occurs or new error introduced.
-
-**On failure — retry loop (max 3 attempts):**
-
-Adjust the fix → re-run tests → re-run quality checks → re-verify.
-After 3 failures, proceed to commit & PR but mark verification as FAILED.
-
-**On success — collect evidence** (screenshots, console logs) for the PR.
+- **Main / Worker**: unit tests from Step 2.3 are sufficient. Mark as **verified** if tests pass.
+- **Renderer**: use CDP for live verification. See [references/cdp-verification.md](references/cdp-verification.md) for full flow.
 
 #### Step 2.6: Commit & Create PR
 
@@ -417,88 +388,7 @@ Instead, report to the user and suggest updating the existing PR if needed.
 This ensures all commits and PRs follow the project's established conventions
 without duplicating rules across skills.
 
-#### Step 2.7: Wait for CI & Auto-Merge
-
-After the PR is created and marked as Ready for Review, wait for all CI checks to pass,
-then automatically merge the PR.
-
-**Only auto-merge when ALL of these conditions are met:**
-
-1. PR is marked as **Ready for Review** (not Draft)
-2. All required CI checks pass (see list below)
-3. No check is in `failure` state
-
-**If the PR is Draft** (verification failed/skipped → `needs-manual-review`), skip auto-merge
-and proceed to the next group.
-
-**Polling flow:**
-
-```bash
-# Poll CI status (max 15 minutes, check every 30 seconds)
-gh pr checks <pr-number> --repo <org>/<repo> --watch --fail-fast
-```
-
-If `gh pr checks --watch` is not available, use a manual polling loop:
-
-```
-max_wait = 900  # 15 minutes
-interval = 30   # seconds
-elapsed = 0
-
-while elapsed < max_wait:
-    checks = gh pr checks <pr-number>
-    if all checks passed:
-        break
-    if any check failed:
-        report failure, skip merge
-        break
-    sleep interval
-    elapsed += interval
-
-if elapsed >= max_wait:
-    report timeout, skip merge
-```
-
-**CI checks to monitor (fast checks only — ignore slow Build Test jobs):**
-
-| Check                      | Monitor |
-| -------------------------- | ------- |
-| Code Quality               | Yes     |
-| Unit Tests (all platforms) | Yes     |
-| Coverage Test              | Yes     |
-| I18n Check                 | Yes     |
-| Release Script Test        | Yes     |
-| Build Test (all platforms) | Skip    |
-| CodeQL / Analyze           | Skip    |
-
-Only wait for the "Yes" checks above. Build and CodeQL jobs are slow and non-blocking
-for bug-fix PRs — do not wait for them.
-
-When polling, check only the monitored jobs. If all monitored checks pass, proceed to merge
-even if Build Test / CodeQL are still pending or skipped.
-
-**On all monitored checks passed — merge:**
-
-```bash
-gh pr merge <pr-number> --repo <org>/<repo> --squash --delete-branch
-```
-
-Use `--squash` to keep commit history clean. `--delete-branch` cleans up the remote branch.
-
-**On any check failed:**
-
-1. Do NOT merge
-2. Add `ci-failed` label to the PR
-3. Report the failed check(s) in the summary
-4. Proceed to the next group
-
-**On timeout (15 minutes):**
-
-1. Do NOT merge
-2. Add `ci-timeout` label
-3. Report in summary that CI did not complete in time
-
-#### Step 2.8: Return to Main
+#### Step 2.7: Return to Main
 
 ```bash
 git checkout main
@@ -508,53 +398,58 @@ Proceed to the next group.
 
 ### Phase 3: Summary Report
 
-After all groups are processed, output:
+After all groups are processed, output a summary report.
+See [references/report-template.md](references/report-template.md) for the exact format.
 
-```
-=== Fix Sentry Results ===
+#### Step 3.1: Update Skip List (Daemon Mode Only)
 
-Fixed & Merged (N groups, covering X Sentry issues):
-  1. [ELECTRON-5, ELECTRON-6X, ELECTRON-1A] Missing credentials in fetchModelList
-     PR: <pr-url> (merged ✓)
-     Issue: #<number>
-     Verification: PASS — screenshot attached, no console errors
-     CI: all checks passed, auto-merged via squash
+In daemon mode (`limit > 0`), after the summary report, update `~/.aionui-fix-sentry/skip-list.json`
+with all issues that were **skipped** in this session. This prevents the next session from
+re-analyzing the same issues.
 
-  2. ...
+**TTL by classification:**
 
-Fixed, Pending Manual Review (P groups):
-  1. [ELECTRON-YY] Worker process error
-     PR: <pr-url> (draft)
-     Verification: skipped — worker process, not verifiable via chrome-devtools
-     → Requires manual review and merge
+| Classification    | TTL      | Reason                                            |
+| ----------------- | -------- | ------------------------------------------------- |
+| system_level      | 7 days   | These never change (EPIPE, ENOSPC, EIO, uv, etc.) |
+| already_fixed     | 48 hours | Re-check in case of regression                    |
+| unfixable         | 24 hours | Might become fixable with new code changes        |
+| fix_pending_merge | 12 hours | PR might get merged, issue might resolve          |
 
-Fixed, CI Failed (F groups):
-  1. [ELECTRON-ZZ] Error description
-     PR: <pr-url> (ci-failed)
-     → Failed check: Build Test (windows-x64)
+**Write rules:**
 
-Already fixed (M issues):
-  1. [ELECTRON-6, ELECTRON-6Y] Unsupported message type 'finished'
-     → Evidence: PR #456 merged in v1.8.31
+1. Read the existing file first (preserve entries from previous sessions that haven't expired)
+2. For each skipped issue in this session, add or update its entry with the appropriate TTL
+3. For issues that were **fixed** in this session (PR created), do NOT add to skip list —
+   they should be detected as "already fixed" by the next session's normal triage
+4. Write the merged result back to the file
 
-Skipped (K issues):
-  1. [ELECTRON-J] write EPIPE
-     → Reason: System-level error, no application code
+**Example output:**
 
-Total: N fixed (A auto-merged, B pending review, C ci-failed), M already fixed, K skipped
+```json
+{
+  "ELECTRON-A7": { "reason": "system_level", "expires": "2026-04-03T03:00:00Z", "summary": "EPIPE in net.Socket" },
+  "ELECTRON-6X": { "reason": "already_fixed", "expires": "2026-03-29T03:00:00Z", "summary": "PR #1758 merged" },
+  "ELECTRON-16": { "reason": "system_level", "expires": "2026-04-03T03:00:00Z", "summary": "Electron SingletonCookie" },
+  "ELECTRON-X": { "reason": "fix_pending_merge", "expires": "2026-03-27T15:00:00Z", "summary": "PR #1498 open" }
+}
 ```
 
 ## Configuration
 
 Default parameters (can be overridden via skill args):
 
-| Parameter | Default  | Description              |
-| --------- | -------- | ------------------------ |
-| threshold | 100      | Minimum occurrence count |
-| project   | electron | Sentry project slug      |
-| sort      | freq     | Sort order for issues    |
+| Parameter | Default  | Description                                                        |
+| --------- | -------- | ------------------------------------------------------------------ |
+| threshold | 100      | Minimum occurrence count (batch mode only)                         |
+| project   | electron | Sentry project slug                                                |
+| sort      | freq     | Sort order for issues                                              |
+| limit     | 0        | Max issues to fix per invocation (0 = unlimited, >0 = daemon mode) |
 
-Override example: `/fix-sentry threshold=50 project=electron`
+Override examples:
+
+- Batch mode: `/fix-sentry threshold=50 project=electron`
+- Daemon mode: `/fix-sentry limit=1 project=electron`
 
 ## Mandatory Rules
 

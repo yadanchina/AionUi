@@ -11,7 +11,7 @@ import { uuid } from '@/common/utils';
 import { existsSync } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
-import { getSkillsDir, getBuiltinSkillsCopyDir, getSystemDir } from './initStorage';
+import { getSkillsDir, getBuiltinSkillsCopyDir, getAutoSkillsDir, getSystemDir } from './initStorage';
 import { computeOpenClawIdentityHash } from './openclawUtils';
 
 /**
@@ -70,8 +70,6 @@ export async function setupAssistantWorkspace(
     enabledSkills?: string[];
   }
 ): Promise<void> {
-  if (!options.enabledSkills || options.enabledSkills.length === 0) return;
-
   // Determine skills directories based on agent type or backend
   const key = options.backend || options.agentType || '';
   const skillsDirs = AGENT_SKILLS_DIRS[key];
@@ -80,15 +78,41 @@ export async function setupAssistantWorkspace(
   // The caller should use prompt injection as fallback.
   if (!skillsDirs) return;
 
+  const autoSkillsDir = getAutoSkillsDir();
   const userSkillsDir = getSkillsDir();
 
   for (const skillsRelDir of skillsDirs) {
     const targetSkillsDir = path.join(workspace, skillsRelDir);
     await fs.mkdir(targetSkillsDir, { recursive: true });
 
-    for (const skillName of options.enabledSkills) {
-      // Skip builtin skills (auto-injected via SkillManager / virtual extension)
-      if (skillName === 'cron') continue;
+    // Always symlink _builtin skills for all native-skill backends
+    let autoSkillNames: string[] = [];
+    try {
+      autoSkillNames = await fs.readdir(autoSkillsDir);
+    } catch {
+      // _builtin dir not ready yet, skip
+    }
+    for (const skillName of autoSkillNames) {
+      const sourceSkillDir = path.join(autoSkillsDir, skillName);
+      const targetSkillDir = path.join(targetSkillsDir, skillName);
+      try {
+        await fs.stat(sourceSkillDir);
+        try {
+          await fs.lstat(targetSkillDir);
+          // Already exists, skip
+        } catch {
+          await fs.symlink(sourceSkillDir, targetSkillDir, 'junction');
+          console.log(`[setupAssistantWorkspace] Symlinked builtin skill: ${skillName} -> ${targetSkillDir}`);
+        }
+      } catch {
+        console.warn(`[setupAssistantWorkspace] Builtin skill directory not found: ${sourceSkillDir}`);
+      }
+    }
+
+    // Symlink optional enabled skills
+    for (const skillName of options.enabledSkills ?? []) {
+      // Skip if already symlinked as a builtin skill
+      if (autoSkillNames.includes(skillName)) continue;
 
       // Try builtin-skills/ first, then user skills/
       const builtinCandidate = path.join(getBuiltinSkillsCopyDir(), skillName);
@@ -314,6 +338,37 @@ export const createNanobotAgent = async (options: ICreateConversationParams): Pr
     extra: {
       workspace: workspace,
       customWorkspace,
+      enabledSkills: extra.enabledSkills,
+      presetAssistantId: extra.presetAssistantId,
+    },
+    createTime: Date.now(),
+    modifyTime: Date.now(),
+    name: workspace,
+    id: uuid(),
+  };
+};
+
+export const createRemoteAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
+  const { extra } = options;
+  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
+    `remote-temp-${Date.now()}`,
+    extra.workspace,
+    extra.defaultFiles,
+    extra.customWorkspace
+  );
+
+  if (!customWorkspace) {
+    await setupAssistantWorkspace(workspace, {
+      enabledSkills: extra.enabledSkills,
+    });
+  }
+
+  return {
+    type: 'remote',
+    extra: {
+      workspace,
+      customWorkspace,
+      remoteAgentId: extra.remoteAgentId!,
       enabledSkills: extra.enabledSkills,
       presetAssistantId: extra.presetAssistantId,
     },

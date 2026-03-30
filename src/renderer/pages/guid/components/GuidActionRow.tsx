@@ -44,8 +44,8 @@ type GuidActionRowProps = {
   // Send button
   loading: boolean;
   isButtonDisabled: boolean;
+  speechInputNode?: React.ReactNode;
   onSend: () => void;
-  voiceInputButton?: React.ReactNode;
 };
 
 const GuidActionRow: React.FC<GuidActionRowProps> = ({
@@ -64,8 +64,8 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   onClosePresetTag,
   loading,
   isButtonDisabled,
+  speechInputNode,
   onSend,
-  voiceInputButton,
 }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
@@ -244,7 +244,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
         )}
       </div>
       <div className={styles.actionSubmit}>
-        {voiceInputButton}
+        {speechInputNode}
         <Button
           shape='circle'
           type='primary'

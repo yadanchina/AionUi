@@ -9,7 +9,14 @@ import { ipcBridge } from '@/common';
 
 export function initShellBridge(): void {
   ipcBridge.shell.openFile.provider(async (path) => {
-    await shell.openPath(path);
+    try {
+      const errorMessage = await shell.openPath(path);
+      if (errorMessage) {
+        console.warn(`[shellBridge] Failed to open path: ${errorMessage}`);
+      }
+    } catch (error) {
+      console.warn(`[shellBridge] Failed to open path:`, (error as Error).message);
+    }
   });
 
   ipcBridge.shell.showItemInFolder.provider((path) => {
@@ -18,6 +25,12 @@ export function initShellBridge(): void {
   });
 
   ipcBridge.shell.openExternal.provider((url) => {
+    try {
+      new URL(url);
+    } catch {
+      console.warn(`[shellBridge] Invalid URL passed to openExternal: ${url}`);
+      return Promise.resolve();
+    }
     return shell.openExternal(url);
   });
 }

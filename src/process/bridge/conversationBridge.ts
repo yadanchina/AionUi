@@ -20,6 +20,7 @@ import { refreshTrayMenu } from '@process/utils/tray';
 import { copyFilesToDirectory, readDirectoryRecursive } from '@process/utils';
 import { computeOpenClawIdentityHash } from '@process/utils/openclawUtils';
 import { migrateConversationToDatabase } from './migrationUtils';
+import { ConversationSideQuestionService } from './services/ConversationSideQuestionService';
 
 const refreshTrayMenuSafely = async (): Promise<void> => {
   try {
@@ -33,6 +34,8 @@ export function initConversationBridge(
   conversationService: IConversationService,
   workerTaskManager: IWorkerTaskManager
 ): void {
+  const sideQuestionService = new ConversationSideQuestionService(conversationService);
+
   const emitConversationListChanged = (
     conversation: Pick<TChatConversation, 'id' | 'source'>,
     action: 'created' | 'updated' | 'deleted'
@@ -252,7 +255,7 @@ export function initConversationBridge(
         if (modelChanged) {
           try {
             workerTaskManager.kill(id);
-          } catch (killErr) {
+          } catch {
             // ignore kill error, will lazily rebuild later
           }
         }
@@ -333,8 +336,8 @@ export function initConversationBridge(
   })();
 
   ipcBridge.conversation.getWorkspace.provider(async ({ workspace, search, path }) => {
-    const fileService = GeminiAgent.buildFileServer(workspace);
     try {
+      const fileService = GeminiAgent.buildFileServer(workspace);
       return await readDirectoryRecursive(path, {
         root: workspace,
         fileService,
@@ -392,6 +395,25 @@ export function initConversationBridge(
     }
   });
 
+  ipcBridge.conversation.askSideQuestion.provider(async ({ conversation_id, question }) => {
+    try {
+      const result = await sideQuestionService.ask(conversation_id, question);
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      console.error('[conversationBridge] /btw request failed', {
+        conversationId: conversation_id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : String(error),
+      };
+    }
+  });
+
   // 通用 sendMessage 实现 - 统一调用 IAgentManager.sendMessage
   // Generic sendMessage - dispatches via IAgentManager.sendMessage interface
   ipcBridge.conversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
@@ -411,7 +433,15 @@ export function initConversationBridge(
     }
 
     // Copy files to workspace (unified for all agents)
-    const workspaceFiles = await copyFilesToDirectory(task.workspace, files, false, getSystemDir().cacheDir);
+    // Wrap in try-catch to prevent unhandled rejection when workspace directory is missing
+    // (bridge library does not attach .catch to provider promises)
+    let workspaceFiles: string[];
+    try {
+      workspaceFiles = await copyFilesToDirectory(task.workspace, files, false, getSystemDir().cacheDir);
+    } catch (error) {
+      console.error('[conversationBridge] sendMessage: failed to copy files to workspace:', error);
+      workspaceFiles = [];
+    }
 
     // Precompute agent content with optional skill injection.
     // OpenClaw uses full-content mode: inject full skill text rather than index paths,
