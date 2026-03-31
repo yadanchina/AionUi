@@ -19,6 +19,8 @@ import HorizontalFileList from '@renderer/components/media/HorizontalFileList';
 import MarkdownView from '@renderer/components/Markdown';
 import { stripThinkTags, hasThinkTags } from '@renderer/utils/chat/thinkTagFilter';
 import MessageCronBadge from './MessageCronBadge';
+import { parseShowWidgets } from '@/renderer/lib/widget/parseWidget';
+import { WidgetRenderer } from '@/renderer/components/widget/WidgetRenderer';
 
 const parseFileMarker = (content: string) => {
   const markerIndex = content.indexOf(AIONUI_FILES_MARKER);
@@ -92,6 +94,20 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const utterancesRef = React.useRef<SpeechSynthesisUtterance[]>([]);
   const isUserMessage = message.position === 'right';
+
+  // Parse widgets from text
+  const contentBlocks = useMemo(() => parseShowWidgets(text), [text]);
+
+  // 检测是否有 widget，如果有则添加标记到 message 元素
+  const hasWidgets = contentBlocks.some(block => block.type === 'widget');
+  React.useEffect(() => {
+    if (hasWidgets) {
+      const messageEl = document.getElementById(`message-${message.id}`);
+      if (messageEl) {
+        messageEl.classList.add('has-widget');
+      }
+    }
+  }, [hasWidgets, message.id]);
 
   // 过滤空内容，避免渲染空DOM
   if (!message.content.content || (typeof message.content.content === 'string' && !message.content.content.trim())) {
@@ -251,7 +267,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
 
   return (
     <>
-      <div className={classNames('min-w-0 flex flex-col group', isUserMessage ? 'items-end' : 'items-start')}>
+      <div className={classNames('w-full min-w-0 flex flex-col group', isUserMessage ? 'items-end' : 'items-start')}>
         {cronMeta && <MessageCronBadge meta={cronMeta} />}
         {files.length > 0 && (
           <div className={classNames('mt-6px', { 'self-end': isUserMessage })}>
@@ -268,24 +284,52 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
             )}
           </div>
         )}
-        <div
-          className={classNames('min-w-0 [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px md:max-w-780px', {
-            'bg-aou-2 p-8px': isUserMessage || cronMeta,
-            'w-full': !(isUserMessage || cronMeta),
-          })}
-          style={isUserMessage || cronMeta ? { borderRadius: '8px 0 8px 8px' } : undefined}
-        >
-          {/* JSON 内容使用折叠组件 Use CollapsibleContent for JSON content */}
-          {json ? (
-            <CollapsibleContent maxHeight={200} defaultCollapsed={true}>
-              <MarkdownView
-                codeStyle={{ marginTop: 4, marginBlock: 4 }}
-              >{`\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``}</MarkdownView>
-            </CollapsibleContent>
-          ) : (
-            <MarkdownView codeStyle={{ marginTop: 4, marginBlock: 4 }}>{data}</MarkdownView>
-          )}
-        </div>
+
+        {/* 如果有 widget，分别渲染文本和 widget */}
+        {hasWidgets ? (
+          contentBlocks.map((block, idx) =>
+            block.type === 'widget' ? (
+              <div key={`widget-${idx}`} className="w-full">
+                <WidgetRenderer
+                  widgetCode={block.widgetCode}
+                  title={block.title}
+                  isStreaming={false}
+                />
+              </div>
+            ) : (
+              <div
+                key={`text-${idx}`}
+                className={classNames('min-w-0 [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px md:max-w-780px', {
+                  'bg-aou-2 p-8px': isUserMessage || cronMeta,
+                  'w-full': !(isUserMessage || cronMeta),
+                })}
+                style={isUserMessage || cronMeta ? { borderRadius: '8px 0 8px 8px' } : undefined}
+              >
+                <MarkdownView codeStyle={{ marginTop: 4, marginBlock: 4 }}>
+                  {block.content}
+                </MarkdownView>
+              </div>
+            )
+          )
+        ) : (
+          <div
+            className={classNames('min-w-0 [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px md:max-w-780px', {
+              'bg-aou-2 p-8px': isUserMessage || cronMeta,
+              'w-full': !(isUserMessage || cronMeta),
+            })}
+            style={isUserMessage || cronMeta ? { borderRadius: '8px 0 8px 8px' } : undefined}
+          >
+            {json ? (
+              <CollapsibleContent maxHeight={200} defaultCollapsed={true}>
+                <MarkdownView
+                  codeStyle={{ marginTop: 4, marginBlock: 4 }}
+                >{`\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``}</MarkdownView>
+              </CollapsibleContent>
+            ) : (
+              <MarkdownView codeStyle={{ marginTop: 4, marginBlock: 4 }}>{data}</MarkdownView>
+            )}
+          </div>
+        )}
         <div
           className={classNames('h-32px flex items-center mt-4px', {
             'justify-end': isUserMessage,

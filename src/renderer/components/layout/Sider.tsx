@@ -1,7 +1,7 @@
 import { ArrowCircleLeft, ListCheckbox, Plus, SettingTwo } from '@icon-park/react';
 import { IconMoonFill, IconSunFill } from '@arco-design/web-react/icon';
 import classNames from 'classnames';
-import React, { Suspense, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { iconColors } from '@renderer/styles/colors';
@@ -12,9 +12,8 @@ import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { blurActiveElement } from '@renderer/utils/ui/focus';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
 import ConversationSearchPopover from '@renderer/pages/conversation/GroupedHistory/ConversationSearchPopover';
-
-const WorkspaceGroupedHistory = React.lazy(() => import('@renderer/pages/conversation/GroupedHistory'));
-const SettingsSider = React.lazy(() => import('@renderer/pages/settings/components/SettingsSider'));
+import WorkspaceGroupedHistory from '@renderer/pages/conversation/GroupedHistory';
+import SettingsSider from '@renderer/pages/settings/components/SettingsSider';
 
 interface SiderProps {
   onSessionClick?: () => void;
@@ -86,9 +85,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
       {/* Main content area */}
       <div className='flex-1 min-h-0 overflow-hidden'>
         {isSettings ? (
-          <Suspense fallback={<div className='size-full' />}>
-            <SettingsSider collapsed={collapsed} tooltipEnabled={tooltipEnabled}></SettingsSider>
-          </Suspense>
+          <SettingsSider collapsed={collapsed} tooltipEnabled={tooltipEnabled}></SettingsSider>
         ) : (
           <div className='size-full flex flex-col'>
             <div className='mb-8px shrink-0 flex items-center gap-8px'>
@@ -158,9 +155,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                 </div>
               </Tooltip>
             </div>
-            <Suspense fallback={<div className='flex-1 min-h-0' />}>
-              <WorkspaceGroupedHistory {...workspaceHistoryProps}></WorkspaceGroupedHistory>
-            </Suspense>
+            <WorkspaceGroupedHistory {...workspaceHistoryProps}></WorkspaceGroupedHistory>
           </div>
         )}
       </div>
