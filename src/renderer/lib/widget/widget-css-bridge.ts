@@ -475,12 +475,29 @@ ${FORM_STYLES.replace(/^([a-z])/gm, '.widget-root $1').replace(/^(\[)/gm, '.widg
 
 /** CSS variable names to resolve from the parent document for iframe srcdoc. */
 const THEME_VAR_NAMES = [
-  '--bg-base', '--bg-1', '--bg-2', '--bg-3',
-  '--text-primary', '--text-secondary', '--text-disabled',
-  '--border-base', '--border-light',
-  '--primary', '--success', '--warning', '--danger', '--info',
-  '--brand', '--brand-light', '--brand-hover',
-  '--aou-1', '--aou-2', '--aou-3', '--aou-4', '--aou-5', '--aou-6',
+  '--bg-base',
+  '--bg-1',
+  '--bg-2',
+  '--bg-3',
+  '--text-primary',
+  '--text-secondary',
+  '--text-disabled',
+  '--border-base',
+  '--border-light',
+  '--primary',
+  '--success',
+  '--warning',
+  '--danger',
+  '--info',
+  '--brand',
+  '--brand-light',
+  '--brand-hover',
+  '--aou-1',
+  '--aou-2',
+  '--aou-3',
+  '--aou-4',
+  '--aou-5',
+  '--aou-6',
 ];
 
 /**

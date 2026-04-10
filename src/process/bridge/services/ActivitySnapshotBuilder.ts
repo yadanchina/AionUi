@@ -54,7 +54,7 @@ const resolveAgentIdentity = (conversation: TChatConversation): { backend: strin
   }
   if (conversation.type === 'openclaw-gateway') {
     const backend = String(conversation.extra?.backend || 'openclaw');
-    const agentName = String(conversation.extra?.agentName || 'OpenClaw');
+    const agentName = String(conversation.extra?.agentName || '通用智能体');
     return { backend, agentName };
   }
   if (conversation.type === 'remote') {

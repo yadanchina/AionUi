@@ -17,11 +17,7 @@ export type DownloadedModelArchive = {
 
 function previewArchiveResponse(bytes: Uint8Array): string {
   const preview = bytes.slice(0, RESPONSE_PREVIEW_BYTES);
-  return new TextDecoder()
-    .decode(preview)
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, RESPONSE_PREVIEW_BYTES);
+  return new TextDecoder().decode(preview).replace(/\s+/g, ' ').trim().slice(0, RESPONSE_PREVIEW_BYTES);
 }
 
 function isGzipArchive(bytes: Uint8Array): boolean {

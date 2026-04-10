@@ -8,6 +8,14 @@ import { resolve } from 'path';
 import UnoCSS from 'unocss/vite';
 import unoConfig from './uno.config.ts';
 
+const reactAliases = [
+  { find: /^react$/, replacement: resolve('node_modules/react/index.js') },
+  { find: /^react\/jsx-runtime$/, replacement: resolve('node_modules/react/jsx-runtime.js') },
+  { find: /^react\/jsx-dev-runtime$/, replacement: resolve('node_modules/react/jsx-dev-runtime.js') },
+  { find: /^react-dom$/, replacement: resolve('node_modules/react-dom/index.js') },
+  { find: /^react-dom\/client$/, replacement: resolve('node_modules/react-dom/client.js') },
+];
+
 // Icon Park transform plugin (mirrors electron.vite.config.ts)
 function iconParkPlugin() {
   return {
@@ -45,14 +53,15 @@ export default defineConfig({
   root: resolve('src/renderer'),
   publicDir: resolve('public'),
   resolve: {
-    alias: {
-      '@': resolve('src'),
-      '@common': resolve('src/common'),
-      '@renderer': resolve('src/renderer'),
-      '@process': resolve('src/process'),
-      '@worker': resolve('src/process/worker'),
-      streamdown: resolve('node_modules/streamdown/dist/index.js'),
-    },
+    alias: [
+      ...reactAliases,
+      { find: '@', replacement: resolve('src') },
+      { find: '@common', replacement: resolve('src/common') },
+      { find: '@renderer', replacement: resolve('src/renderer') },
+      { find: '@process', replacement: resolve('src/process') },
+      { find: '@worker', replacement: resolve('src/process/worker') },
+      { find: 'streamdown', replacement: resolve('node_modules/streamdown/dist/index.js') },
+    ],
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.css'],
     dedupe: ['react', 'react-dom', 'react-router-dom'],
   },
@@ -119,6 +128,7 @@ export default defineConfig({
       'react-markdown',
       'react-syntax-highlighter',
       'react-virtuoso',
+      'qrcode.react',
       'classnames',
       'swr',
       'eventemitter3',

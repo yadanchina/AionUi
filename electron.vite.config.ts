@@ -43,6 +43,14 @@ const mainAliases = {
   '@xterm/headless': resolve('src/common/utils/shims/xterm-headless.ts'),
 };
 
+const reactAliases = [
+  { find: /^react$/, replacement: resolve('node_modules/react/index.js') },
+  { find: /^react\/jsx-runtime$/, replacement: resolve('node_modules/react/jsx-runtime.js') },
+  { find: /^react\/jsx-dev-runtime$/, replacement: resolve('node_modules/react/jsx-dev-runtime.js') },
+  { find: /^react-dom$/, replacement: resolve('node_modules/react-dom/index.js') },
+  { find: /^react-dom\/client$/, replacement: resolve('node_modules/react-dom/client.js') },
+];
+
 export default defineConfig(({ mode }) => {
   const isDevelopment = mode === 'development';
   const enableSentrySourceMaps = !isDevelopment && !!process.env.SENTRY_AUTH_TOKEN;
@@ -147,15 +155,16 @@ export default defineConfig(({ mode }) => {
         },
       },
       resolve: {
-        alias: {
-          '@': resolve('src'),
-          '@common': resolve('src/common'),
-          '@renderer': resolve('src/renderer'),
-          '@process': resolve('src/process'),
-          '@worker': resolve('src/process/worker'),
+        alias: [
+          ...reactAliases,
+          { find: '@', replacement: resolve('src') },
+          { find: '@common', replacement: resolve('src/common') },
+          { find: '@renderer', replacement: resolve('src/renderer') },
+          { find: '@process', replacement: resolve('src/process') },
+          { find: '@worker', replacement: resolve('src/process/worker') },
           // Force ESM version of streamdown
-          streamdown: resolve('node_modules/streamdown/dist/index.js'),
-        },
+          { find: 'streamdown', replacement: resolve('node_modules/streamdown/dist/index.js') },
+        ],
         extensions: ['.ts', '.tsx', '.js', '.jsx', '.css'],
         dedupe: ['react', 'react-dom', 'react-router-dom'],
       },
@@ -232,6 +241,7 @@ export default defineConfig(({ mode }) => {
           'react-markdown',
           'react-syntax-highlighter',
           'react-virtuoso',
+          'qrcode.react',
           'classnames',
           'swr',
           'eventemitter3',

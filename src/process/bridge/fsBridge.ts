@@ -1081,7 +1081,7 @@ export function initFsBridge(): void {
           path: path.join(homedir, '.agents', 'skills'),
         },
         { name: 'Gemini CLI', path: path.join(homedir, '.gemini', 'skills') },
-        { name: 'Claude Code', path: path.join(homedir, '.claude', 'skills') },
+        { name: '代码智能体', path: path.join(homedir, '.claude', 'skills') },
         {
           name: 'OpenCode',
           path: path.join(homedir, '.config', 'opencode', 'skills'),
@@ -1186,7 +1186,7 @@ export function initFsBridge(): void {
           source: 'gemini',
         },
         {
-          name: 'Claude Code',
+          name: '代码智能体',
           path: path.join(homedir, '.claude', 'skills'),
           source: 'claude',
         },

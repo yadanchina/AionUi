@@ -25,12 +25,7 @@
 
 // ── CDN whitelist ──────────────────────────────────────────────────────────
 
-export const CDN_WHITELIST = [
-  'cdnjs.cloudflare.com',
-  'cdn.jsdelivr.net',
-  'unpkg.com',
-  'esm.sh',
-];
+export const CDN_WHITELIST = ['cdnjs.cloudflare.com', 'cdn.jsdelivr.net', 'unpkg.com', 'esm.sh'];
 
 // ── HTML sanitization ────────────────────────────────────────────────────
 
@@ -54,7 +49,7 @@ export function sanitizeForStreaming(html: string): string {
         const url = (dq ?? sq ?? uq ?? '').trim();
         if (/^\s*(javascript|data)\s*:/i.test(url)) return '';
         return match;
-      },
+      }
     );
 }
 
@@ -63,9 +58,7 @@ export function sanitizeForStreaming(html: string): string {
  * Only strips tags that could nest/break out of the sandbox.
  */
 export function sanitizeForIframe(html: string): string {
-  return html
-    .replace(DANGEROUS_TAGS, '')
-    .replace(DANGEROUS_VOID, '');
+  return html.replace(DANGEROUS_TAGS, '').replace(DANGEROUS_VOID, '');
 }
 
 // ── Receiver iframe srcdoc ────────────────────────────────────────────────
@@ -84,17 +77,14 @@ export function sanitizeForIframe(html: string): string {
  *
  * Also handles: height sync, link interception, theme updates, sendMessage.
  */
-export function buildReceiverSrcdoc(
-  styleBlock: string,
-  isDark: boolean,
-): string {
-  const cspDomains = CDN_WHITELIST.map(d => 'https://' + d).join(' ');
+export function buildReceiverSrcdoc(styleBlock: string, isDark: boolean): string {
+  const cspDomains = CDN_WHITELIST.map((d) => 'https://' + d).join(' ');
   const csp = [
     "default-src 'none'",
     `script-src 'unsafe-inline' ${cspDomains}`,
     "style-src 'unsafe-inline'",
-    "img-src * data: blob:",
-    "font-src * data:",
+    'img-src * data: blob:',
+    'font-src * data:',
     "connect-src 'none'",
   ].join('; ');
 

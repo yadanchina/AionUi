@@ -1,22 +1,21 @@
-<svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="186.292" height="188.403" viewBox="0 0 186.292 188.403">
   <defs>
-    <linearGradient id="lobster-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ff4d4d"/>
-      <stop offset="100%" stop-color="#991b1b"/>
+    <linearGradient id="linear-gradient" x1="0.227" y1="1" x2="0.758" y2="0.247" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#31a0d5"/>
+      <stop offset="1" stop-color="#2352a1"/>
+    </linearGradient>
+    <radialGradient id="radial-gradient" cx="0.752" cy="0.394" r="1.222" gradientTransform="matrix(0.753, 0.707, -0.753, 0.707, 0.482, -0.416)" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#afdce7"/>
+      <stop offset="1" stop-color="#3d9cd6"/>
+    </radialGradient>
+    <linearGradient id="linear-gradient-2" x1="0.067" y1="0.443" x2="0.623" y2="1.346" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#3d9cd6"/>
+      <stop offset="1" stop-color="#afdce7"/>
     </linearGradient>
   </defs>
-  <!-- Body -->
-  <path d="M60 10 C30 10 15 35 15 55 C15 75 30 95 45 100 L45 110 L55 110 L55 100 C55 100 60 102 65 100 L65 110 L75 110 L75 100 C90 95 105 75 105 55 C105 35 90 10 60 10Z" fill="url(#lobster-gradient)"/>
-  <!-- Left Claw -->
-  <path d="M20 45 C5 40 0 50 5 60 C10 70 20 65 25 55 C28 48 25 45 20 45Z" fill="url(#lobster-gradient)"/>
-  <!-- Right Claw -->
-  <path d="M100 45 C115 40 120 50 115 60 C110 70 100 65 95 55 C92 48 95 45 100 45Z" fill="url(#lobster-gradient)"/>
-  <!-- Antenna -->
-  <path d="M45 15 Q35 5 30 8" stroke="#ff4d4d" stroke-width="3" stroke-linecap="round"/>
-  <path d="M75 15 Q85 5 90 8" stroke="#ff4d4d" stroke-width="3" stroke-linecap="round"/>
-  <!-- Eyes -->
-  <circle cx="45" cy="35" r="6" fill="#050810"/>
-  <circle cx="75" cy="35" r="6" fill="#050810"/>
-  <circle cx="46" cy="34" r="2.5" fill="#00e5cc"/>
-  <circle cx="76" cy="34" r="2.5" fill="#00e5cc"/>
+  <g id="组_120" data-name="组 120" transform="translate(-0.069 0.007)">
+    <path id="路径_18" data-name="路径 18" d="M570.481,461.132c-40.011-15.417-58.912-71.4-17.066-104.431,24.8-19.585,57.55-12.821,61.456,2.125,1.01,3.866-.341,12.745-12.453,10.54,19.546,44.323,50.652,16.52,63.529.549a94.287,94.287,0,0,0-102.54-61.839c-82.946,18.614-71.221,99.216-55.967,122.68C531.591,467.919,591.056,469.062,570.481,461.132Z" transform="translate(-482.869 -307.082)" fill="url(#linear-gradient)"/>
+    <path id="路径_19" data-name="路径 19" d="M639.849,361.688a94.384,94.384,0,0,0-22.236-35.238,95.554,95.554,0,0,0-10.744-9.256c12.253,10.271,18.823,22.23,14.188,32.242-5.232,11.288-21.521,17.575-39.049,12.986-36.875-9.656-52.467,16.335-53.316,34.779-.823,17.9,13.947,44.23,48.361,41.755C619.722,435.885,654.135,401.882,639.849,361.688Z" transform="translate(-456.771 -298.856)" fill="url(#radial-gradient)"/>
+    <path id="路径_20" data-name="路径 20" d="M670.708,426.322c-12.456,18.868-41.383,41.267-74.993,37.666-49.6-5.315-83.322-37.071-85.893-81.488-2.249-38.874,27.437-68.365,59.731-74.87a94.2,94.2,0,1,0,103.6,121.446C674.638,424.311,673.5,422.107,670.708,426.322Z" transform="translate(-489.016 -306.636)" fill="url(#linear-gradient-2)"/>
+  </g>
 </svg>

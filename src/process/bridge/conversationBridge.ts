@@ -51,13 +51,13 @@ export function initConversationBridge(
     try {
       const conversation = await conversationService.getConversation(conversation_id);
       if (!conversation || conversation.type !== 'openclaw-gateway') {
-        return { success: false, msg: 'OpenClaw conversation not found' };
+        return { success: false, msg: '通用智能体 conversation not found' };
       }
       const task = (await workerTaskManager.getOrBuildTask(conversation_id)) as unknown as
         | OpenClawAgentManager
         | undefined;
       if (!task || task.type !== 'openclaw-gateway') {
-        return { success: false, msg: 'OpenClaw runtime not available' };
+        return { success: false, msg: '通用智能体 runtime not available' };
       }
 
       // Await bootstrap to ensure the agent is fully connected before returning runtime info.

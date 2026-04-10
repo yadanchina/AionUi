@@ -37,7 +37,7 @@ const result = spawnSync(
   {
     cwd: join(projectRoot, 'resources', 'vosk-model'),
     stdio: 'inherit',
-    shell: process.platform === 'win32'
+    shell: process.platform === 'win32',
   }
 );
 

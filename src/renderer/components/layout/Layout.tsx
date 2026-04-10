@@ -336,9 +336,9 @@ const Layout: React.FC<{
 
   const siderWidth = isMobile
     ? Math.max(
-        MOBILE_SIDER_MIN_WIDTH,
-        Math.min(MOBILE_SIDER_MAX_WIDTH, Math.round(viewportWidth * MOBILE_SIDER_WIDTH_RATIO))
-      )
+      MOBILE_SIDER_MIN_WIDTH,
+      Math.min(MOBILE_SIDER_MAX_WIDTH, Math.round(viewportWidth * MOBILE_SIDER_WIDTH_RATIO))
+    )
     : DEFAULT_SIDER_WIDTH;
   useEffect(() => {
     collapsedRef.current = collapsed;
@@ -363,13 +363,13 @@ const Layout: React.FC<{
             style={
               isMobile
                 ? {
-                    position: 'fixed',
-                    left: 0,
-                    zIndex: 100,
-                    transform: collapsed ? 'translateX(-100%)' : 'translateX(0)',
-                    transition: 'none',
-                    pointerEvents: collapsed ? 'none' : 'auto',
-                  }
+                  position: 'fixed',
+                  left: 0,
+                  zIndex: 100,
+                  transform: collapsed ? 'translateX(-100%)' : 'translateX(0)',
+                  transition: 'none',
+                  pointerEvents: collapsed ? 'none' : 'auto',
+                }
                 : undefined
             }
           >
@@ -382,7 +382,7 @@ const Layout: React.FC<{
                 }
               )}
             >
-              <div
+              {/* <div
                 className={classNames('bg-black shrink-0 size-40px relative rd-0.5rem', {
                   '!size-24px': collapsed,
                 })}
@@ -410,8 +410,36 @@ const Layout: React.FC<{
                     strokeLinecap='round'
                   ></path>
                 </svg>
-              </div>
-              <div className='flex-1 text-20px text-1 collapsed-hidden font-bold'>AionUi</div>
+              </div> */}
+              <svg
+                xmlns='http://www.w3.org/2000/svg'
+                xmlnsXlink='http://www.w3.org/1999/xlink'
+                width='186.292'
+                height='188.403'
+                viewBox='0 0 186.292 188.403'
+                className='size-40px'
+              >
+                <defs>
+                  <linearGradient id="linear-gradient" x1="0.227" y1="1" x2="0.758" y2="0.247" gradientUnits="objectBoundingBox">
+                    <stop offset='0' stopColor='#31a0d5' />
+                    <stop offset='1' stopColor='#2352a1' />
+                  </linearGradient>
+                  <radialGradient id="radial-gradient" cx="0.752" cy="0.394" r="1.222" gradientTransform="matrix(0.753, 0.707, -0.753, 0.707, 0.482, -0.416)" gradientUnits="objectBoundingBox">
+                    <stop offset='0' stopColor='#afdce7' />
+                    <stop offset='1' stopColor='#3d9cd6' />
+                  </radialGradient>
+                  <linearGradient id="linear-gradient-2" x1="0.067" y1="0.443" x2="0.623" y2="1.346" gradientUnits="objectBoundingBox">
+                    <stop offset='0' stopColor='#3d9cd6' />
+                    <stop offset='1' stopColor='#afdce7' />
+                  </linearGradient>
+                </defs>
+                <g id="组_120" data-name="组 120" transform="translate(-0.069 0.007)">
+                  <path id="路径_18" data-name="路径 18" d="M570.481,461.132c-40.011-15.417-58.912-71.4-17.066-104.431,24.8-19.585,57.55-12.821,61.456,2.125,1.01,3.866-.341,12.745-12.453,10.54,19.546,44.323,50.652,16.52,63.529.549a94.287,94.287,0,0,0-102.54-61.839c-82.946,18.614-71.221,99.216-55.967,122.68C531.591,467.919,591.056,469.062,570.481,461.132Z" transform="translate(-482.869 -307.082)" fill="url(#linear-gradient)" />
+                  <path id="路径_19" data-name="路径 19" d="M639.849,361.688a94.384,94.384,0,0,0-22.236-35.238,95.554,95.554,0,0,0-10.744-9.256c12.253,10.271,18.823,22.23,14.188,32.242-5.232,11.288-21.521,17.575-39.049,12.986-36.875-9.656-52.467,16.335-53.316,34.779-.823,17.9,13.947,44.23,48.361,41.755C619.722,435.885,654.135,401.882,639.849,361.688Z" transform="translate(-456.771 -298.856)" fill="url(#radial-gradient)" />
+                  <path id="路径_20" data-name="路径 20" d="M670.708,426.322c-12.456,18.868-41.383,41.267-74.993,37.666-49.6-5.315-83.322-37.071-85.893-81.488-2.249-38.874,27.437-68.365,59.731-74.87a94.2,94.2,0,1,0,103.6,121.446C674.638,424.311,673.5,422.107,670.708,426.322Z" transform="translate(-489.016 -306.636)" fill="url(#linear-gradient-2)" />
+                </g>
+              </svg>
+              <div className='flex-1 text-20px text-1 collapsed-hidden font-bold'>DataExa</div>
               {isMobile && !collapsed && (
                 <button
                   type='button'
@@ -433,12 +461,12 @@ const Layout: React.FC<{
             >
               {React.isValidElement(sider)
                 ? React.cloneElement(sider, {
-                    onSessionClick: () => {
-                      cleanupSiderTooltips();
-                      if (isMobile) setCollapsed(true);
-                    },
-                    collapsed,
-                  } as any)
+                  onSessionClick: () => {
+                    cleanupSiderTooltips();
+                    if (isMobile) setCollapsed(true);
+                  },
+                  collapsed,
+                } as any)
                 : sider}
             </ArcoLayout.Content>
           </ArcoLayout.Sider>
@@ -451,8 +479,8 @@ const Layout: React.FC<{
             style={
               isMobile
                 ? {
-                    width: '100%',
-                  }
+                  width: '100%',
+                }
                 : undefined
             }
           >

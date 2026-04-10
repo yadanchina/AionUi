@@ -544,8 +544,8 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           aiProcessing
             ? t('conversation.chat.processing')
             : t('acp.sendbox.placeholder', {
-                backend: 'OpenClaw',
-                defaultValue: `Send message to OpenClaw...`,
+                backend: '通用智能体',
+                defaultValue: 'Send message to 通用智能体...',
               })
         }
         onStop={handleStop}

@@ -430,9 +430,9 @@ export const handleHelpShow: ActionHandler = async (context) => {
   return createSuccessResponse({
     type: 'text',
     text: [
-      '❓ <b>AionUi Assistant</b>',
+      '❓ <b>DataExa Assistant</b>',
       '',
-      'A remote assistant to interact with AionUi via Telegram.',
+      'A remote assistant to interact with DataExa via Telegram.',
       '',
       '<b>Common Actions:</b>',
       '• 🆕 New Chat - Start a new session',
@@ -515,12 +515,12 @@ export const handleHelpPairing: ActionHandler = async (context) => {
       '<b>First-time Setup:</b>',
       '1. Send any message to the bot',
       '2. Bot displays pairing code',
-      '3. Approve pairing in AionUi settings',
+      '3. Approve pairing in DataExa settings',
       '4. Ready to use after pairing',
       '',
       '<b>Notes:</b>',
       '• Pairing code valid for 10 minutes',
-      '• AionUi app must be running',
+      '• DataExa app must be running',
       '• One Telegram account can only pair once',
     ].join('\n'),
     parseMode: 'HTML',
@@ -589,9 +589,9 @@ export const handleSettingsShow: ActionHandler = async (context) => {
     text: [
       '⚙️ <b>Settings</b>',
       '',
-      'Channel settings need to be configured in the AionUi app.',
+      'Channel settings need to be configured in the DataExa app.',
       '',
-      'Open AionUi → WebUI → Channels',
+      'Open DataExa → WebUI → Channels',
     ].join('\n'),
     parseMode: 'HTML',
     replyMarkup: createMainMenuKeyboard(),
@@ -741,7 +741,7 @@ function getAgentDisplayName(agentType: ChannelAgentType): string {
     gemini: '🤖 Gemini',
     acp: '🧠 Claude',
     codex: '⚡ Codex',
-    'openclaw-gateway': '🦞 OpenClaw',
+    'openclaw-gateway': '🦞 通用智能体',
   };
   return names[agentType] || agentType;
 }

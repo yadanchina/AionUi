@@ -99,7 +99,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   const contentBlocks = useMemo(() => parseShowWidgets(text), [text]);
 
   // 检测是否有 widget，如果有则添加标记到 message 元素
-  const hasWidgets = contentBlocks.some(block => block.type === 'widget');
+  const hasWidgets = contentBlocks.some((block) => block.type === 'widget');
   React.useEffect(() => {
     if (hasWidgets) {
       const messageEl = document.getElementById(`message-${message.id}`);
@@ -289,12 +289,8 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
         {hasWidgets ? (
           contentBlocks.map((block, idx) =>
             block.type === 'widget' ? (
-              <div key={`widget-${idx}`} className="w-full">
-                <WidgetRenderer
-                  widgetCode={block.widgetCode}
-                  title={block.title}
-                  isStreaming={false}
-                />
+              <div key={`widget-${idx}`} className='w-full'>
+                <WidgetRenderer widgetCode={block.widgetCode} title={block.title} isStreaming={false} />
               </div>
             ) : (
               <div
@@ -305,9 +301,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
                 })}
                 style={isUserMessage || cronMeta ? { borderRadius: '8px 0 8px 8px' } : undefined}
               >
-                <MarkdownView codeStyle={{ marginTop: 4, marginBlock: 4 }}>
-                  {block.content}
-                </MarkdownView>
+                <MarkdownView codeStyle={{ marginTop: 4, marginBlock: 4 }}>{block.content}</MarkdownView>
               </div>
             )
           )

@@ -186,7 +186,7 @@ const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversat
         // ignore persistence error
       }
       onOpenUrl(normalized, {
-        title: t('starOffice.monitor.title', { defaultValue: 'OpenClaw Live Monitor' }),
+        title: t('starOffice.monitor.title', { defaultValue: '通用智能体 Live Monitor' }),
       });
       setVisible(false);
     } catch {
@@ -247,7 +247,7 @@ const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversat
         const rechecked = await runDetect({ force: true, timeoutMs: STAR_OFFICE_DETECT_TIMEOUT_DEFAULT });
         if (rechecked) {
           onOpenUrl(rechecked, {
-            title: t('starOffice.monitor.title', { defaultValue: 'OpenClaw Live Monitor' }),
+            title: t('starOffice.monitor.title', { defaultValue: '通用智能体 Live Monitor' }),
           });
           return;
         }
@@ -296,7 +296,7 @@ const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversat
         // ignore persistence error
       }
       onOpenUrl(target, {
-        title: t('starOffice.monitor.title', { defaultValue: 'OpenClaw Live Monitor' }),
+        title: t('starOffice.monitor.title', { defaultValue: '通用智能体 Live Monitor' }),
       });
       setShowDiagnoseHint(false);
       setDetectFailureCount(0);
@@ -360,7 +360,7 @@ const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversat
             <div className='mt-6px text-12px leading-18px text-t-secondary'>
               {t('starOffice.monitor.visualDesc', {
                 defaultValue:
-                  'Star Office is a visual companion for OpenClaw. It turns chat-side status into a live, interactive monitor view.',
+                  'Star Office is a visual companion for 通用智能体. It turns chat-side status into a live, interactive monitor view.',
               })}
             </div>
             <div className='mt-10px overflow-hidden rounded-10px border border-3 bg-1'>
@@ -373,7 +373,7 @@ const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversat
                     </div>
                     <div className='mt-2px text-11px text-t-secondary'>
                       {t('starOffice.monitor.visualFallbackDesc', {
-                        defaultValue: 'OpenClaw chat status becomes a visual office scene.',
+                        defaultValue: '通用智能体 chat status becomes a visual office scene.',
                       })}
                     </div>
                   </div>
@@ -400,7 +400,7 @@ const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversat
             </div>
             <div className='mt-10px flex items-center gap-6px text-12px text-t-primary flex-wrap'>
               <span className='rounded-full border border-3 bg-1 px-8px py-4px'>
-                {t('starOffice.monitor.visualStepChat', { defaultValue: 'OpenClaw Chat' })}
+                {t('starOffice.monitor.visualStepChat', { defaultValue: '通用智能体 Chat' })}
               </span>
               <span className='text-t-secondary'>→</span>
               <span className='rounded-full border border-3 bg-1 px-8px py-4px'>
@@ -452,7 +452,7 @@ const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversat
             ) : (
               <div className='mt-10px flex flex-wrap items-center gap-8px'>
                 <Button type='primary' className='!rounded-10px' onClick={handleAskOpenClawInstall}>
-                  {t('starOffice.monitor.installWithOpenClaw', { defaultValue: 'Install with OpenClaw' })}
+                  {t('starOffice.monitor.installWithOpenClaw', { defaultValue: 'Install with 通用智能体' })}
                 </Button>
                 <Button
                   size='mini'

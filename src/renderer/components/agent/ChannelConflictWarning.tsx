@@ -18,7 +18,7 @@ interface ChannelConflictWarningProps {
 }
 
 /**
- * Warning component when OpenClaw channel conflicts with AionUi Channels
+ * Warning component when openclaw channel conflicts with DataExa Channels
  */
 export const ChannelConflictWarning: React.FC<ChannelConflictWarningProps> = ({
   platform,
@@ -37,59 +37,59 @@ export const ChannelConflictWarning: React.FC<ChannelConflictWarningProps> = ({
       content={
         <Space direction='vertical' size='medium' style={{ width: '100%' }}>
           <Paragraph>
-            <Text bold>OpenClaw is handling {platformName} messages, not AionUi.</Text>
+            <Text bold>通用智能体 is handling {platformName} messages, not DataExa.</Text>
           </Paragraph>
 
           <Paragraph>
-            Your {platformName} bot credentials are also configured in OpenClaw. This means:
+            Your {platformName} bot credentials are also configured in 通用智能体. This means:
             <ul>
               <li>
-                <Text type='error'>✗ Switching agents in AionUi will have no effect</Text>
+                <Text type='error'>Switching agents in DataExa will have no effect</Text>
               </li>
               <li>
-                <Text type='error'>✗ Messages are processed by OpenClaw's agent</Text>
+                <Text type='error'>Messages are processed by 通用智能体&apos;s agent</Text>
               </li>
               <li>
-                <Text type='success'>✓ Messages still work (via OpenClaw)</Text>
+                <Text type='success'>Messages still work (via 通用智能体)</Text>
               </li>
             </ul>
           </Paragraph>
 
           <Paragraph>
-            <Text bold>To use AionUi Channels and switch agents:</Text>
+            <Text bold>To use DataExa Channels and switch agents:</Text>
           </Paragraph>
 
           <Paragraph>
-            <Text type='secondary'>Option 1: Disable OpenClaw {platformName} (Recommended)</Text>
+            <Text type='secondary'>Option 1: Disable 通用智能体 {platformName} (Recommended)</Text>
             <br />
             Edit: <Text code>{openclawConfigPath}</Text>
             <br />
             Set: <Text code>{`channels.${channelKey}.enabled = false`}</Text>
             <br />
-            Then restart OpenClaw and AionUi.
+            Then restart 通用智能体 and DataExa.
           </Paragraph>
 
           <Paragraph>
             <Text type='secondary'>Option 2: Use a different bot</Text>
             <br />
-            Create a new {platformName} bot with different credentials for AionUi.
+            Create a new {platformName} bot with different credentials for DataExa.
           </Paragraph>
 
           <Paragraph>
-            <Text type='secondary'>Option 3: Keep using OpenClaw</Text>
+            <Text type='secondary'>Option 3: Keep using 通用智能体</Text>
             <br />
-            Disable {platformName} in AionUi Channels and continue using OpenClaw's integration.
+            Disable {platformName} in DataExa Channels and continue using 通用智能体&apos;s integration.
           </Paragraph>
 
           <Space>
             {onDisableOpenClaw && (
               <Button type='primary' onClick={onDisableOpenClaw}>
-                Help me disable OpenClaw {platformName}
+                Help me disable 通用智能体 {platformName}
               </Button>
             )}
             {onIgnore && (
               <Button type='text' onClick={onIgnore}>
-                Ignore (I know what I'm doing)
+                Ignore (I know what I&apos;m doing)
               </Button>
             )}
           </Space>
@@ -115,7 +115,7 @@ export const ChannelConflictBanner: React.FC<{ platform: 'lark' | 'telegram'; on
       type='warning'
       content={
         <Space>
-          <Text>⚠️ OpenClaw {platformName} conflict detected - Agent switching won't work.</Text>
+          <Text>通用智能体 {platformName} conflict detected - Agent switching won&apos;t work.</Text>
           <Link onClick={onLearnMore}>Learn more</Link>
         </Space>
       }

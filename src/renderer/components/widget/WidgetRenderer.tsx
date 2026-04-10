@@ -61,7 +61,7 @@ function WidgetRendererInner({ widgetCode, isStreaming, title, showOverlay }: Wi
             const newH = Math.min(e.data.height + 2, MAX_IFRAME_HEIGHT);
             const cacheKey = getHeightCacheKey(widgetCode);
             if (heightLockedRef.current) {
-              setIframeHeight(prev => {
+              setIframeHeight((prev) => {
                 const h = Math.max(prev, newH);
                 _heightCache.set(cacheKey, h);
                 return h;
@@ -111,7 +111,9 @@ function WidgetRendererInner({ widgetCode, isStreaming, title, showOverlay }: Wi
     const sanitized = sanitizeForStreaming(widgetCode);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => sendUpdate(sanitized), STREAM_DEBOUNCE);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, [widgetCode, isStreaming, iframeReady, sendUpdate]);
 
   const finalizedCodeRef = useRef('');
@@ -134,10 +136,10 @@ function WidgetRendererInner({ widgetCode, isStreaming, title, showOverlay }: Wi
   const showLoadingOverlay = hasCDN && !isStreaming && iframeReady && !finalized;
 
   return (
-    <div className="relative my-8px group">
+    <div className='relative my-8px group'>
       <iframe
         ref={iframeRef}
-        sandbox="allow-scripts"
+        sandbox='allow-scripts'
         srcDoc={srcdoc}
         title={title || 'Widget'}
         onLoad={() => setIframeReady(true)}
@@ -149,11 +151,11 @@ function WidgetRendererInner({ widgetCode, isStreaming, title, showOverlay }: Wi
           overflow: 'hidden',
           transition: 'height 0.3s ease-out',
         }}
-        scrolling="no"
+        scrolling='no'
       />
       {(showLoadingOverlay || showOverlay) && (
         <div
-          className="absolute inset-0 pointer-events-none rd-8px"
+          className='absolute inset-0 pointer-events-none rd-8px'
           style={{
             background: 'linear-gradient(90deg, transparent 0%, rgba(128,128,128,0.08) 50%, transparent 100%)',
             backgroundSize: '200% 100%',
@@ -162,14 +164,14 @@ function WidgetRendererInner({ widgetCode, isStreaming, title, showOverlay }: Wi
         />
       )}
       {showCode && (
-        <pre className="p-12px text-xs rd-8px bg-fill-2 overflow-x-auto max-h-320px overflow-y-auto border border-line-2">
+        <pre className='p-12px text-xs rd-8px bg-fill-2 overflow-x-auto max-h-320px overflow-y-auto border border-line-2'>
           <code>{widgetCode}</code>
         </pre>
       )}
-      <div className="absolute top-4px right-4px opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className='absolute top-4px right-4px opacity-0 group-hover:opacity-100 transition-opacity'>
         <button
           onClick={() => setShowCode(!showCode)}
-          className="text-10px px-6px py-2px rd-4px text-t-3 hover:text-t-2 hover:bg-fill-2"
+          className='text-10px px-6px py-2px rd-4px text-t-3 hover:text-t-2 hover:bg-fill-2'
         >
           {showCode ? 'Hide' : 'Show'} Code
         </button>
@@ -185,4 +187,3 @@ export function WidgetRenderer(props: WidgetRendererProps) {
     </WidgetErrorBoundary>
   );
 }
-

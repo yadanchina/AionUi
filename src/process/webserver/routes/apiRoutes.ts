@@ -263,9 +263,7 @@ function sendVoskModelArchive(_req: Request, res: Response): void {
   const archivePath = path.join(resourcesBase, 'vosk-model.tar.gz');
 
   if (!fs.existsSync(archivePath)) {
-    res
-      .status(404)
-      .json({ message: 'Vosk model archive not found. Run `bun run build:vosk-model` to generate it.' });
+    res.status(404).json({ message: 'Vosk model archive not found. Run `bun run build:vosk-model` to generate it.' });
     return;
   }
 

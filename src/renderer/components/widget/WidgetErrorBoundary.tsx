@@ -30,11 +30,7 @@ export class WidgetErrorBoundary extends React.Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      return (
-        <div className="p-12px rd-8px bg-red-50 text-red-600 text-sm">
-          Widget rendering failed
-        </div>
-      );
+      return <div className='p-12px rd-8px bg-red-50 text-red-600 text-sm'>Widget rendering failed</div>;
     }
     return this.props.children;
   }

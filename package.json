@@ -1,18 +1,17 @@
 {
   "name": "AionUi",
-  "homepage": "https://aionui.com",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/yadanchina/AionUi.git"
-  },
-  "productName": "AionUi",
   "version": "1.9.3",
   "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
   "keywords": [],
+  "homepage": "https://aionui.com",
   "license": "Apache-2.0",
   "author": {
     "name": "AionUi",
     "email": "service@aionui.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yadanchina/AionUi.git"
   },
   "main": "./out/main/index.js",
   "scripts": {
@@ -241,5 +240,6 @@
   },
   "patchedDependencies": {
     "7zip-bin@5.2.0": "patches/7zip-bin@5.2.0.patch"
-  }
+  },
+  "productName": "AionUi"
 }

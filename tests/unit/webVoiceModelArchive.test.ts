@@ -55,8 +55,6 @@ describe('downloadModelArchive', () => {
       revokeObjectURL: vi.fn(),
     });
 
-    await expect(downloadModelArchive('/api/vosk-model.tar.gz')).rejects.toThrow(
-      'Invalid Vosk model archive response'
-    );
+    await expect(downloadModelArchive('/api/vosk-model.tar.gz')).rejects.toThrow('Invalid Vosk model archive response');
   });
 });

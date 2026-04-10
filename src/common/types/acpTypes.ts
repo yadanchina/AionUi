@@ -323,7 +323,7 @@ export interface AcpBackendConfig {
 export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
   claude: {
     id: 'claude',
-    name: 'Claude Code',
+    name: '代码智能体',
     cliCommand: 'claude',
     authRequired: true,
     enabled: true,
@@ -450,7 +450,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
   },
   'openclaw-gateway': {
     id: 'openclaw-gateway',
-    name: 'OpenClaw',
+    name: '通用智能体',
     cliCommand: 'openclaw',
     authRequired: false,
     enabled: true, // ✅ OpenClaw Gateway WebSocket mode

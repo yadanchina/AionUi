@@ -59,7 +59,7 @@ describe('Assistant edit drawer backend options', () => {
     const options = buildBackendOptions(available);
 
     expect(options).toEqual([
-      { value: 'claude', label: 'Claude Code' },
+      { value: 'claude', label: '代码智能体' },
       { value: 'codex', label: 'Codex' },
       { value: 'codebuddy', label: 'CodeBuddy' },
     ]);

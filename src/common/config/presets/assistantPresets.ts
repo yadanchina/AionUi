@@ -321,21 +321,21 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     },
     defaultEnabledSkills: ['openclaw-setup', 'aionui-webui-setup'],
     nameI18n: {
-      'en-US': 'OpenClaw Setup Expert',
-      'zh-CN': 'OpenClaw 部署专家',
+      'en-US': '通用智能体部署专家',
+      'zh-CN': '通用智能体部署专家',
     },
     descriptionI18n: {
       'en-US':
-        'Expert guide for installing, deploying, configuring, and troubleshooting OpenClaw. Proactively helps with setup, diagnoses issues, and provides security best practices.',
-      'zh-CN': 'OpenClaw 安装、部署、配置和故障排查专家。主动协助设置、诊断问题并提供安全最佳实践。',
+        'Expert guide for installing, deploying, configuring, and troubleshooting 通用智能体. Proactively helps with setup, diagnoses issues, and provides security best practices.',
+      'zh-CN': '通用智能体安装、部署、配置和故障排查专家。主动协助设置、诊断问题并提供安全最佳实践。',
     },
     promptsI18n: {
       'en-US': [
-        'Help me install OpenClaw step by step',
-        "My OpenClaw isn't working, please diagnose the issue",
-        'Configure Telegram channel for OpenClaw integration',
+        'Help me install 通用智能体 step by step',
+        "My 通用智能体 isn't working, please diagnose the issue",
+        'Configure Telegram channel for 通用智能体 integration',
       ],
-      'zh-CN': ['帮我一步步安装 OpenClaw', '我的 OpenClaw 出问题了，请帮我诊断', '为 OpenClaw 配置 Telegram 渠道'],
+      'zh-CN': ['帮我一步步安装通用智能体', '我的通用智能体出问题了，请帮我诊断', '为通用智能体配置 Telegram 渠道'],
     },
   },
   {
