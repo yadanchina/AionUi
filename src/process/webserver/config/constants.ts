@@ -95,6 +95,7 @@ export const SERVER_CONFIG = {
     host: '127.0.0.1' as string,
     port: WEBUI_DEFAULT_PORT as number,
     allowRemote: false as boolean,
+    active: false as boolean,
   },
 
   /**
@@ -105,6 +106,15 @@ export const SERVER_CONFIG = {
     this._currentConfig.port = port;
     this._currentConfig.host = allowRemote ? '0.0.0.0' : '127.0.0.1';
     this._currentConfig.allowRemote = allowRemote;
+    this._currentConfig.active = true;
+  },
+
+  /**
+   * 检查 WebServer 是否已经启动
+   * Check if WebServer has been started in the current process
+   */
+  get isWebServerActive(): boolean {
+    return this._currentConfig.active;
   },
 
   /**

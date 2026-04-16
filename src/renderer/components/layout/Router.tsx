@@ -14,7 +14,6 @@ const SystemSettings = React.lazy(() => import('@renderer/pages/settings/SystemS
 const ToolsSettings = React.lazy(() => import('@renderer/pages/settings/ToolsSettings'));
 const WebuiSettings = React.lazy(() => import('@renderer/pages/settings/WebuiSettings'));
 const ExtensionSettingsPage = React.lazy(() => import('@renderer/pages/settings/ExtensionSettingsPage'));
-const LoginPage = React.lazy(() => import('@renderer/pages/login'));
 const ComponentsShowcase = React.lazy(() => import('@renderer/pages/TestShowcase'));
 
 const withRouteFallback = (Component: React.LazyExoticComponent<React.ComponentType>) => (
@@ -23,11 +22,17 @@ const withRouteFallback = (Component: React.LazyExoticComponent<React.ComponentT
   </Suspense>
 );
 
+const isWebuiRuntime = typeof window !== 'undefined' && !window.electronAPI;
+
 const ProtectedLayout: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
   const { status } = useAuth();
 
   if (status === 'checking') {
     return <AppLoader />;
+  }
+
+  if (isWebuiRuntime) {
+    return React.cloneElement(layout);
   }
 
   if (status !== 'authenticated') {
@@ -43,10 +48,7 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
   return (
     <HashRouter>
       <Routes>
-        <Route
-          path='/login'
-          element={status === 'authenticated' ? <Navigate to='/guid' replace /> : withRouteFallback(LoginPage)}
-        />
+        <Route path='/login' element={<Navigate to='/guid' replace />} />
         <Route element={<ProtectedLayout layout={layout} />}>
           <Route index element={<Navigate to='/guid' replace />} />
           <Route path='/guid' element={withRouteFallback(Guid)} />
@@ -65,7 +67,7 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/settings' element={<Navigate to='/settings/gemini' replace />} />
           <Route path='/test/components' element={withRouteFallback(ComponentsShowcase)} />
         </Route>
-        <Route path='*' element={<Navigate to={status === 'authenticated' ? '/guid' : '/login'} replace />} />
+        <Route path='*' element={<Navigate to='/guid' replace />} />
       </Routes>
     </HashRouter>
   );

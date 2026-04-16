@@ -8,11 +8,12 @@ import type { WebSocketServer } from 'ws';
 import { WebSocket } from 'ws';
 import type { IncomingMessage } from 'http';
 import { TokenMiddleware } from '@process/webserver/auth/middleware/TokenMiddleware';
+import { SERVER_CONFIG } from '../config/constants';
 import { WEBSOCKET_CONFIG } from '../config/constants';
 import { SHOW_OPEN_REQUEST_EVENT } from '@/common/adapter/constant';
 
 interface ClientInfo {
-  token: string;
+  token: string | null;
   lastPing: number;
 }
 
@@ -56,7 +57,7 @@ export class WebSocketManager {
       }
 
       ws.off('message', bufferMessage);
-      this.addClient(ws, token!);
+      this.addClient(ws, token);
       this.setupMessageHandler(ws, onMessage);
       this.setupCloseHandler(ws);
       this.setupErrorHandler(ws);
@@ -75,6 +76,10 @@ export class WebSocketManager {
    * Validate connection
    */
   private async validateConnection(ws: WebSocket, token: string | null): Promise<boolean> {
+    if (SERVER_CONFIG.isWebServerActive) {
+      return true;
+    }
+
     if (!token) {
       ws.close(WEBSOCKET_CONFIG.CLOSE_CODES.POLICY_VIOLATION, 'No token provided');
       return false;
@@ -105,7 +110,7 @@ export class WebSocketManager {
    * 添加客户端
    * Add client
    */
-  private addClient(ws: WebSocket, token: string): void {
+  private addClient(ws: WebSocket, token: string | null): void {
     this.clients.set(ws, {
       token,
       lastPing: Date.now(),
@@ -236,6 +241,11 @@ export class WebSocketManager {
       }
 
       // Validate if WebSocket token is still valid
+      if (SERVER_CONFIG.isWebServerActive) {
+        this.sendHeartbeat(ws);
+        continue;
+      }
+
       if (!(await TokenMiddleware.validateWebSocketToken(clientInfo.token))) {
         console.log('[WebSocketManager] Token expired, closing connection');
         try {

@@ -16,6 +16,7 @@ interface CustomWindow extends Window {
 }
 
 const win = window as CustomWindow;
+const isWebuiRuntime = !win.electronAPI;
 
 /**
  * 适配electron的API到浏览器中,建立renderer和main的通信桥梁, 与preload.ts中的注入对应
@@ -101,10 +102,6 @@ if (win.electronAPI) {
     });
 
     socket.addEventListener('message', (event: MessageEvent) => {
-      if (!emitterRef) {
-        return;
-      }
-
       try {
         const payload = JSON.parse(event.data as string) as {
           name: string;
@@ -120,9 +117,18 @@ if (win.electronAPI) {
           return;
         }
 
+        if (!emitterRef) {
+          return;
+        }
+
         // 处理认证过期 - 停止重连并跳转到登录页
         // Handle auth expiration - stop reconnecting and redirect to login
         if (payload.name === 'auth-expired') {
+          if (isWebuiRuntime) {
+            console.warn('[WebSocket] Ignoring auth-expired in WebUI mode');
+            return;
+          }
+
           console.warn('[WebSocket] Authentication expired, stopping reconnection');
           shouldReconnect = false;
 
@@ -168,6 +174,12 @@ if (win.electronAPI) {
         return; // Already handled by auth-expired message handler
       }
       if (event.code === 1008) {
+        if (isWebuiRuntime) {
+          console.warn('[WebSocket] Ignoring policy violation close in WebUI mode, retrying');
+          scheduleReconnect();
+          return;
+        }
+
         console.warn('[WebSocket] Connection rejected by server (policy violation), redirecting to login');
         shouldReconnect = false;
         if (reconnectTimer !== null) {

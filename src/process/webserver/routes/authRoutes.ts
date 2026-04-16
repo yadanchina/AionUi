@@ -8,7 +8,7 @@ import type { Express, Request, Response } from 'express';
 import { AuthService } from '@process/webserver/auth/service/AuthService';
 import { AuthMiddleware } from '@process/webserver/auth/middleware/AuthMiddleware';
 import { UserRepository } from '@process/webserver/auth/repository/UserRepository';
-import { AUTH_CONFIG, getCookieOptions } from '../config/constants';
+import { AUTH_CONFIG, SERVER_CONFIG, getCookieOptions } from '../config/constants';
 import { TokenUtils } from '@process/webserver/auth/middleware/TokenMiddleware';
 import { createAppError } from '../middleware/errorHandler';
 import { authRateLimiter, authenticatedActionLimiter, apiRateLimiter } from '../middleware/security';
@@ -189,7 +189,7 @@ export function registerAuthRoutes(app: Express): void {
         success: true,
         needsSetup: !hasUsers,
         userCount,
-        isAuthenticated: false, // Will be determined by frontend based on token
+        isAuthenticated: true,
       });
     } catch (error) {
       console.error('Auth status error:', error);
@@ -209,12 +209,10 @@ export function registerAuthRoutes(app: Express): void {
   app.get(
     '/api/auth/user',
     apiRateLimiter,
-    AuthMiddleware.authenticateToken,
-    authenticatedActionLimiter,
     (req: Request, res: Response) => {
       res.json({
         success: true,
-        user: req.user,
+        user: req.user ?? null,
       });
     }
   );
@@ -341,6 +339,15 @@ export function registerAuthRoutes(app: Express): void {
   // 为 WebSocket token 端点添加速率限制
   app.get('/api/ws-token', apiRateLimiter, authenticatedActionLimiter, async (req: Request, res: Response, next) => {
     try {
+      if (SERVER_CONFIG.isWebServerActive) {
+        res.json({
+          success: true,
+          wsToken: '',
+          expiresIn: AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE,
+        });
+        return;
+      }
+
       const sessionToken = TokenUtils.extractFromRequest(req);
 
       if (!sessionToken) {
