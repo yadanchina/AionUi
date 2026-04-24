@@ -62,5 +62,24 @@
     "yesAlwaysAllowTool": "はい、サーバー \"{{serverName}}\" のツール \"{{toolName}}\" を常に許可",
     "yesAlwaysAllowServer": "はい、サーバー \"{{serverName}}\" のすべてのツールを常に許可",
     "no": "いいえ (esc)"
+  },
+  "tacticalReasoning": {
+    "title": "戦術推論",
+    "mode": "モード",
+    "hud": "グラフ",
+    "hideMetrics": "指標を閉じる",
+    "showMetrics": "指標を開く",
+    "hideTopology": "グラフを閉じる",
+    "showTopology": "グラフを開く",
+    "topologyTitle": "推論グラフ",
+    "visibleNodes": "{{count}}/{{total}} ノード表示中",
+    "collapseGraph": "折りたたむ",
+    "expandGraph": "展開",
+    "zoomOut": "縮小",
+    "zoomIn": "拡大",
+    "resetView": "表示をリセット",
+    "emptyGraph": "グラフデータがありません",
+    "leafNode": "末端",
+    "levelLabel": "レベル "
   }
 }

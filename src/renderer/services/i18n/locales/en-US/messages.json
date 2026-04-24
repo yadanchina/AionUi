@@ -62,5 +62,24 @@
     "yesAlwaysAllowTool": "Yes, always allow tool \"{{toolName}}\" from server \"{{serverName}}\"",
     "yesAlwaysAllowServer": "Yes, always allow all tools from server \"{{serverName}}\"",
     "no": "No (esc)"
+  },
+  "tacticalReasoning": {
+    "title": "Tactical Reasoning",
+    "mode": "Mode",
+    "hud": "Graph",
+    "hideMetrics": "Hide Metrics",
+    "showMetrics": "Show Metrics",
+    "hideTopology": "Hide Graph",
+    "showTopology": "Show Graph",
+    "topologyTitle": "Reasoning Graph",
+    "visibleNodes": "{{count}}/{{total}} nodes visible",
+    "collapseGraph": "Collapse",
+    "expandGraph": "Expand",
+    "zoomOut": "Zoom out",
+    "zoomIn": "Zoom in",
+    "resetView": "Reset view",
+    "emptyGraph": "No graph data",
+    "leafNode": "Leaf",
+    "levelLabel": "Level "
   }
 }

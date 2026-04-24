@@ -62,5 +62,24 @@
     "yesAlwaysAllowTool": "Evet, \"{{serverName}}\" sunucusundan \"{{toolName}}\" aracına her zaman izin ver",
     "yesAlwaysAllowServer": "Evet, \"{{serverName}}\" sunucusundaki tüm araçlara her zaman izin ver",
     "no": "Hayır (esc)"
+  },
+  "tacticalReasoning": {
+    "title": "Taktiksel Akıl Yürütme",
+    "mode": "Mod",
+    "hud": "Graf",
+    "hideMetrics": "Metrikleri gizle",
+    "showMetrics": "Metrikleri göster",
+    "hideTopology": "Grafı gizle",
+    "showTopology": "Grafı göster",
+    "topologyTitle": "Akıl yürütme grafı",
+    "visibleNodes": "{{count}}/{{total}} düğüm görünür",
+    "collapseGraph": "Daralt",
+    "expandGraph": "Genişlet",
+    "zoomOut": "Uzaklaştır",
+    "zoomIn": "Yakınlaştır",
+    "resetView": "Görünümü sıfırla",
+    "emptyGraph": "Graf verisi yok",
+    "leafNode": "Son",
+    "levelLabel": "Seviye "
   }
 }

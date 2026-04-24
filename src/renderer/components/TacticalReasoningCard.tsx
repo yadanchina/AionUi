@@ -5,9 +5,23 @@
  */
 
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { forceCenter, forceCollide, forceLink, forceManyBody, forceSimulation } from 'd3-force';
+import { Button, Tooltip } from '@arco-design/web-react';
+import { Down, Minus, Plus, Refresh, Up } from '@icon-park/react';
+import { drag, type D3DragEvent } from 'd3-drag';
+import {
+  forceCenter,
+  forceCollide,
+  forceLink,
+  forceManyBody,
+  forceSimulation,
+  forceX,
+  forceY,
+  type SimulationLinkDatum,
+  type SimulationNodeDatum,
+} from 'd3-force';
 import { select } from 'd3-selection';
 import { type ZoomBehavior, zoom, zoomIdentity } from 'd3-zoom';
+import { useTranslation } from 'react-i18next';
 
 type ReasoningMetric = {
   title: string;
@@ -115,28 +129,21 @@ const THEME_MAP: Record<string, ThemePalette> = {
 
 const DEFAULT_THEME = THEME_MAP.blue;
 
-type LayoutNode = ReasoningNode & {
-  id: string;
-  x: number;
-  y: number;
+type LayoutNode = ReasoningNode &
+  SimulationNodeDatum & {
+    id: string;
+  };
+
+type LayoutEdge = Omit<ReasoningEdge, 'source' | 'target'> & SimulationLinkDatum<LayoutNode>;
+
+type GraphHierarchy = {
+  childMap: Map<string, string[]>;
+  leafIds: Set<string>;
 };
 
-type LayoutEdge = Omit<ReasoningEdge, 'source' | 'target'> & {
-  source: string | LayoutNode;
-  target: string | LayoutNode;
-};
-
-type RenderedEdge = {
-  endX: number;
-  endY: number;
-  index: number;
-  label?: string;
-  labelX: number;
-  labelY: number;
-  sourceId: string;
-  startX: number;
-  startY: number;
-  targetId: string;
+type VisibleGraph = {
+  edges: ReasoningEdge[];
+  nodes: ReasoningNode[];
 };
 
 const getNodeRadius = (name: string) => {
@@ -147,7 +154,45 @@ const getNodeFontSize = (name: string) => {
   return Math.max(10, Math.min(11, 12 - name.length * 0.08));
 };
 
-const buildGraphLayout = (nodes: ReasoningNode[], edges: ReasoningEdge[]) => {
+const getNodeX = (node: LayoutNode) => {
+  return node.x ?? 0;
+};
+
+const getNodeY = (node: LayoutNode) => {
+  return node.y ?? 0;
+};
+
+const getLayoutEdgeNode = (node: string | number | LayoutNode | undefined, nodeMap: Map<string, LayoutNode>) => {
+  if (typeof node === 'object' && node) return node;
+  return nodeMap.get(String(node ?? ''));
+};
+
+const getEdgeGeometry = (edge: LayoutEdge, nodeMap: Map<string, LayoutNode>) => {
+  const source = getLayoutEdgeNode(edge.source, nodeMap);
+  const target = getLayoutEdgeNode(edge.target, nodeMap);
+  if (!source || !target) return null;
+
+  const sourceX = getNodeX(source);
+  const sourceY = getNodeY(source);
+  const targetX = getNodeX(target);
+  const targetY = getNodeY(target);
+  const deltaX = targetX - sourceX;
+  const deltaY = targetY - sourceY;
+  const distance = Math.hypot(deltaX, deltaY) || 1;
+  const sourceRadius = getNodeRadius(source.name);
+  const targetRadius = getNodeRadius(target.name);
+
+  return {
+    endX: targetX - (deltaX / distance) * (targetRadius + 8),
+    endY: targetY - (deltaY / distance) * (targetRadius + 8),
+    labelX: (sourceX + targetX) / 2,
+    labelY: (sourceY + targetY) / 2 - 10,
+    startX: sourceX + (deltaX / distance) * sourceRadius,
+    startY: sourceY + (deltaY / distance) * sourceRadius,
+  };
+};
+
+const buildGraphSimulationData = (nodes: ReasoningNode[], edges: ReasoningEdge[]) => {
   const width = 640;
   const height = 300;
   const centerX = width / 2;
@@ -170,83 +215,95 @@ const buildGraphLayout = (nodes: ReasoningNode[], edges: ReasoningEdge[]) => {
     target: edge.target,
   }));
 
-  const simulation = forceSimulation(layoutNodes)
-    .force(
-      'link',
-      forceLink<LayoutNode, LayoutEdge>(layoutEdges)
-        .id((node) => node.id)
-        .distance((edge) => {
-          const sourceName = typeof edge.source === 'string' ? edge.source : edge.source.name;
-          const targetName = typeof edge.target === 'string' ? edge.target : edge.target.name;
-          return Math.max(84, Math.min(140, 62 + (sourceName.length + targetName.length) * 2.5));
-        })
-        .strength(0.9)
-    )
-    .force('charge', forceManyBody().strength(-520))
-    .force(
-      'collide',
-      forceCollide<LayoutNode>().radius((node) => getNodeRadius(node.name) + 12)
-    )
-    .force('center', forceCenter(centerX, centerY));
-
-  for (let index = 0; index < 220; index += 1) {
-    simulation.tick();
-  }
-
-  simulation.stop();
-
   return {
-    nodes: layoutNodes.map((node) => ({
-      ...node,
-      x: Math.max(48, Math.min(width - 48, node.x)),
-      y: Math.max(48, Math.min(height - 48, node.y)),
-    })),
+    height,
+    nodes: layoutNodes,
     edges: layoutEdges,
+    width,
   };
 };
 
-const GraphViz: React.FC<{ nodes: ReasoningNode[]; edges: ReasoningEdge[]; palette: ThemePalette }> = ({
-  nodes,
-  edges,
-  palette,
-}) => {
+const buildGraphHierarchy = (nodes: ReasoningNode[], edges: ReasoningEdge[]): GraphHierarchy => {
+  const nodeIds = new Set(nodes.map((node) => node.name));
+  const childMap = new Map<string, string[]>();
+
+  nodes.forEach((node) => {
+    childMap.set(node.name, []);
+  });
+
+  edges.forEach((edge) => {
+    if (!nodeIds.has(edge.source) || !nodeIds.has(edge.target)) return;
+    childMap.get(edge.source)?.push(edge.target);
+  });
+
+  const leafIds = new Set(
+    nodes.filter((node) => (childMap.get(node.name)?.length ?? 0) === 0).map((node) => node.name)
+  );
+
+  return { childMap, leafIds };
+};
+
+const getCollapsedDescendants = (nodeId: string, childMap: Map<string, string[]>) => {
+  const descendants = new Set<string>();
+  const queue = [...(childMap.get(nodeId) ?? [])];
+
+  for (let index = 0; index < queue.length; index += 1) {
+    const currentId = queue[index];
+    if (currentId === nodeId || descendants.has(currentId)) continue;
+    descendants.add(currentId);
+    queue.push(...(childMap.get(currentId) ?? []));
+  }
+
+  return descendants;
+};
+
+const getVisibleGraph = (
+  nodes: ReasoningNode[],
+  edges: ReasoningEdge[],
+  collapsedIds: Set<string>,
+  childMap: Map<string, string[]>,
+  leafOnly: boolean,
+  leafIds: Set<string>
+): VisibleGraph => {
+  if (leafOnly) {
+    const visibleNodes = nodes.filter((node) => leafIds.has(node.name));
+    const visibleIds = new Set(visibleNodes.map((node) => node.name));
+    const visibleEdges = edges.filter((edge) => visibleIds.has(edge.source) && visibleIds.has(edge.target));
+
+    return { nodes: visibleNodes, edges: visibleEdges };
+  }
+
+  const hiddenIds = new Set<string>();
+
+  collapsedIds.forEach((nodeId) => {
+    getCollapsedDescendants(nodeId, childMap).forEach((descendantId) => hiddenIds.add(descendantId));
+  });
+
+  const visibleNodes = nodes.filter((node) => !hiddenIds.has(node.name));
+  const visibleIds = new Set(visibleNodes.map((node) => node.name));
+  const visibleEdges = edges.filter((edge) => visibleIds.has(edge.source) && visibleIds.has(edge.target));
+
+  return { nodes: visibleNodes, edges: visibleEdges };
+};
+
+const GraphViz: React.FC<{
+  childMap: Map<string, string[]>;
+  edges: ReasoningEdge[];
+  leafIds: Set<string>;
+  nodes: ReasoningNode[];
+  onToggleNode: (nodeId: string) => void;
+  palette: ThemePalette;
+}> = ({ childMap, nodes, edges, leafIds, onToggleNode, palette }) => {
+  const { t } = useTranslation();
   const svgRef = useRef<SVGSVGElement | null>(null);
   const zoomBehaviorRef = useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   const markerId = useId().replace(/:/g, '-');
-  const { nodes: layoutNodes, edges: layoutEdges } = useMemo(() => buildGraphLayout(nodes, edges), [edges, nodes]);
-  const nodeMap = useMemo(() => new Map(layoutNodes.map((node) => [node.name, node])), [layoutNodes]);
-  const renderedEdges = useMemo<RenderedEdge[]>(() => {
-    return layoutEdges.flatMap((edge, index) => {
-      const sourceId = typeof edge.source === 'string' ? edge.source : edge.source.name;
-      const targetId = typeof edge.target === 'string' ? edge.target : edge.target.name;
-      const source = nodeMap.get(sourceId);
-      const target = nodeMap.get(targetId);
-      if (!source || !target) return [];
-
-      const labelX = (source.x + target.x) / 2;
-      const labelY = (source.y + target.y) / 2 - 10;
-      const deltaX = target.x - source.x;
-      const deltaY = target.y - source.y;
-      const distance = Math.hypot(deltaX, deltaY) || 1;
-      const sourceRadius = getNodeRadius(source.name);
-      const targetRadius = getNodeRadius(target.name);
-
-      return [
-        {
-          endX: target.x - (deltaX / distance) * (targetRadius + 8),
-          endY: target.y - (deltaY / distance) * (targetRadius + 8),
-          index,
-          label: edge.label,
-          labelX,
-          labelY,
-          sourceId,
-          startX: source.x + (deltaX / distance) * sourceRadius,
-          startY: source.y + (deltaY / distance) * sourceRadius,
-          targetId,
-        },
-      ];
-    });
-  }, [layoutEdges, nodeMap]);
+  const {
+    nodes: layoutNodes,
+    edges: layoutEdges,
+    width,
+    height,
+  } = useMemo(() => buildGraphSimulationData(nodes, edges), [edges, nodes]);
 
   useEffect(() => {
     if (!svgRef.current) return;
@@ -298,9 +355,15 @@ const GraphViz: React.FC<{ nodes: ReasoningNode[]; edges: ReasoningEdge[]; palet
     svg.call(zoomBehavior);
     svg.call(zoomBehavior.transform, zoomIdentity);
 
+    const nodeMap = new Map(layoutNodes.map((node) => [node.id, node]));
+
     const edgeGroups = edgeLayer
-      .selectAll<SVGGElement, RenderedEdge>('g')
-      .data(renderedEdges, (datum) => `${datum.sourceId}-${datum.targetId}-${datum.index}`)
+      .selectAll<SVGGElement, LayoutEdge>('g')
+      .data(layoutEdges, (datum, index) => {
+        const source = getLayoutEdgeNode(datum.source, nodeMap);
+        const target = getLayoutEdgeNode(datum.target, nodeMap);
+        return `${source?.id ?? 'unknown'}-${target?.id ?? 'unknown'}-${index}`;
+      })
       .join((enter) => {
         const group = enter.append('g');
         group.append('line');
@@ -311,10 +374,6 @@ const GraphViz: React.FC<{ nodes: ReasoningNode[]; edges: ReasoningEdge[]; palet
 
     edgeGroups
       .select('line')
-      .attr('x1', (datum) => datum.startX)
-      .attr('y1', (datum) => datum.startY)
-      .attr('x2', (datum) => datum.endX)
-      .attr('y2', (datum) => datum.endY)
       .attr('stroke', palette.accent)
       .attr('stroke-opacity', 0.7)
       .attr('stroke-width', 2)
@@ -322,8 +381,6 @@ const GraphViz: React.FC<{ nodes: ReasoningNode[]; edges: ReasoningEdge[]; palet
 
     edgeGroups
       .select('rect')
-      .attr('x', (datum) => datum.labelX - 42)
-      .attr('y', (datum) => datum.labelY - 12)
       .attr('width', 84)
       .attr('height', 20)
       .attr('rx', 10)
@@ -333,8 +390,6 @@ const GraphViz: React.FC<{ nodes: ReasoningNode[]; edges: ReasoningEdge[]; palet
 
     edgeGroups
       .select('text')
-      .attr('x', (datum) => datum.labelX)
-      .attr('y', (datum) => datum.labelY + 2)
       .attr('text-anchor', 'middle')
       .attr('fill', palette.subtext)
       .attr('font-size', 11)
@@ -346,6 +401,7 @@ const GraphViz: React.FC<{ nodes: ReasoningNode[]; edges: ReasoningEdge[]; palet
       .data(layoutNodes, (datum) => datum.id)
       .join((enter) => {
         const group = enter.append('g');
+        group.append('circle').attr('data-node-ring', 'halo');
         group.append('circle').attr('data-node-ring', 'inner');
         group.append('circle').attr('data-node-ring', 'outer');
         group.append('text');
@@ -353,9 +409,23 @@ const GraphViz: React.FC<{ nodes: ReasoningNode[]; edges: ReasoningEdge[]; palet
       });
 
     nodeGroups
+      .style('cursor', (datum) => ((childMap.get(datum.id)?.length ?? 0) > 0 ? 'pointer' : 'default'))
+      .on('click', (event: MouseEvent, datum) => {
+        if (event.defaultPrevented) return;
+        if ((childMap.get(datum.id)?.length ?? 0) === 0) return;
+        onToggleNode(datum.id);
+      });
+
+    nodeGroups
+      .select('circle[data-node-ring="halo"]')
+      .attr('r', (datum) => getNodeRadius(datum.name) + (leafIds.has(datum.id) ? 11 : 8))
+      .attr('fill', (datum) => (leafIds.has(datum.id) ? palette.accentSoft : 'transparent'))
+      .attr('stroke', (datum) => (leafIds.has(datum.id) ? palette.accent : palette.border))
+      .attr('stroke-opacity', (datum) => (leafIds.has(datum.id) ? 0.35 : 0.16))
+      .attr('stroke-width', 1);
+
+    nodeGroups
       .select('circle[data-node-ring="inner"]')
-      .attr('cx', (datum) => datum.x)
-      .attr('cy', (datum) => datum.y)
       .attr('r', (datum) => getNodeRadius(datum.name))
       .attr('fill', 'rgba(255, 255, 255, 0.98)')
       .attr('stroke', palette.accent)
@@ -363,8 +433,6 @@ const GraphViz: React.FC<{ nodes: ReasoningNode[]; edges: ReasoningEdge[]; palet
 
     nodeGroups
       .select('circle[data-node-ring="outer"]')
-      .attr('cx', (datum) => datum.x)
-      .attr('cy', (datum) => datum.y)
       .attr('r', (datum) => getNodeRadius(datum.name) + 5)
       .attr('fill', 'none')
       .attr('stroke', palette.border)
@@ -372,14 +440,113 @@ const GraphViz: React.FC<{ nodes: ReasoningNode[]; edges: ReasoningEdge[]; palet
 
     nodeGroups
       .select('text')
-      .attr('x', (datum) => datum.x)
-      .attr('y', (datum) => datum.y + 4)
       .attr('text-anchor', 'middle')
       .attr('fill', palette.text)
       .attr('font-size', (datum) => getNodeFontSize(datum.name))
       .attr('font-weight', 700)
       .text((datum) => datum.name);
-  }, [layoutNodes, markerId, palette.accent, palette.border, palette.subtext, palette.text, renderedEdges]);
+
+    const simulation = forceSimulation(layoutNodes)
+      .force(
+        'link',
+        forceLink<LayoutNode, LayoutEdge>(layoutEdges)
+          .id((node) => node.id)
+          .distance((edge) => {
+            const source = getLayoutEdgeNode(edge.source, nodeMap);
+            const target = getLayoutEdgeNode(edge.target, nodeMap);
+            const sourceName = source?.name ?? '';
+            const targetName = target?.name ?? '';
+            return Math.max(90, Math.min(150, 66 + (sourceName.length + targetName.length) * 2.5));
+          })
+          .strength(0.78)
+      )
+      .force('charge', forceManyBody().strength(-560))
+      .force(
+        'collide',
+        forceCollide<LayoutNode>().radius((node) => getNodeRadius(node.name) + 18)
+      )
+      .force('center', forceCenter(width / 2, height / 2))
+      .force('x', forceX<LayoutNode>(width / 2).strength(0.03))
+      .force('y', forceY<LayoutNode>(height / 2).strength(0.03));
+
+    const clampNode = (node: LayoutNode) => {
+      const radius = getNodeRadius(node.name) + 24;
+      node.x = Math.max(radius, Math.min(width - radius, getNodeX(node)));
+      node.y = Math.max(radius, Math.min(height - radius, getNodeY(node)));
+    };
+
+    const ticked = () => {
+      layoutNodes.forEach(clampNode);
+
+      edgeGroups
+        .select('line')
+        .attr('x1', (datum) => getEdgeGeometry(datum, nodeMap)?.startX ?? 0)
+        .attr('y1', (datum) => getEdgeGeometry(datum, nodeMap)?.startY ?? 0)
+        .attr('x2', (datum) => getEdgeGeometry(datum, nodeMap)?.endX ?? 0)
+        .attr('y2', (datum) => getEdgeGeometry(datum, nodeMap)?.endY ?? 0);
+
+      edgeGroups
+        .select('rect')
+        .attr('x', (datum) => (getEdgeGeometry(datum, nodeMap)?.labelX ?? 0) - 42)
+        .attr('y', (datum) => (getEdgeGeometry(datum, nodeMap)?.labelY ?? 0) - 12);
+
+      edgeGroups
+        .select('text')
+        .attr('x', (datum) => getEdgeGeometry(datum, nodeMap)?.labelX ?? 0)
+        .attr('y', (datum) => (getEdgeGeometry(datum, nodeMap)?.labelY ?? 0) + 2);
+
+      nodeGroups.select('circle[data-node-ring="halo"]').attr('cx', getNodeX).attr('cy', getNodeY);
+      nodeGroups.select('circle[data-node-ring="inner"]').attr('cx', getNodeX).attr('cy', getNodeY);
+      nodeGroups.select('circle[data-node-ring="outer"]').attr('cx', getNodeX).attr('cy', getNodeY);
+      nodeGroups.select('text').attr('x', getNodeX).attr('y', (datum) => getNodeY(datum) + 4);
+    };
+
+    const handleDragStart = (event: D3DragEvent<SVGGElement, LayoutNode, LayoutNode>, datum: LayoutNode) => {
+      if (!event.active) simulation.alphaTarget(0.3).restart();
+      datum.fx = getNodeX(datum);
+      datum.fy = getNodeY(datum);
+    };
+
+    const handleDrag = (event: D3DragEvent<SVGGElement, LayoutNode, LayoutNode>, datum: LayoutNode) => {
+      datum.fx = Math.max(getNodeRadius(datum.name), Math.min(width - getNodeRadius(datum.name), event.x));
+      datum.fy = Math.max(getNodeRadius(datum.name), Math.min(height - getNodeRadius(datum.name), event.y));
+    };
+
+    const handleDragEnd = (event: D3DragEvent<SVGGElement, LayoutNode, LayoutNode>, datum: LayoutNode) => {
+      if (!event.active) simulation.alphaTarget(0);
+      datum.fx = null;
+      datum.fy = null;
+    };
+
+    nodeGroups.call(
+      drag<SVGGElement, LayoutNode>()
+        .on('start', handleDragStart)
+        .on('drag', handleDrag)
+        .on('end', handleDragEnd)
+    );
+
+    simulation.on('tick', ticked);
+    ticked();
+
+    return () => {
+      simulation.stop();
+    };
+  }, [
+    childMap,
+    height,
+    layoutNodes,
+    layoutEdges,
+    markerId,
+    leafIds,
+    onToggleNode,
+    palette.accent,
+    palette.accentSoft,
+    palette.border,
+    palette.subtext,
+    palette.text,
+    t,
+    width,
+  ]);
 
   const handleZoomIn = () => {
     if (!svgRef.current || !zoomBehaviorRef.current) return;
@@ -408,7 +575,7 @@ const GraphViz: React.FC<{ nodes: ReasoningNode[]; edges: ReasoningEdge[]; palet
           fontSize: 13,
         }}
       >
-        No graph data
+        {t('messages.tacticalReasoning.emptyGraph')}
       </div>
     );
   }
@@ -425,61 +592,63 @@ const GraphViz: React.FC<{ nodes: ReasoningNode[]; edges: ReasoningEdge[]; palet
           gap: 6,
         }}
       >
-        <button
-          type='button'
-          onClick={handleZoomOut}
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 999,
-            border: `1px solid ${palette.border}`,
-            background: 'rgba(255, 255, 255, 0.94)',
-            color: palette.text,
-            fontSize: 14,
-            lineHeight: '28px',
-            fontWeight: 700,
-            cursor: 'pointer',
-          }}
-        >
-          -
-        </button>
-        <button
-          type='button'
-          onClick={handleZoomReset}
-          style={{
-            minWidth: 40,
-            height: 28,
-            borderRadius: 999,
-            border: `1px solid ${palette.border}`,
-            background: 'rgba(255, 255, 255, 0.94)',
-            color: palette.text,
-            fontSize: 11,
-            lineHeight: '28px',
-            fontWeight: 700,
-            padding: '0 10px',
-            cursor: 'pointer',
-          }}
-        >
-          1:1
-        </button>
-        <button
-          type='button'
-          onClick={handleZoomIn}
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 999,
-            border: `1px solid ${palette.border}`,
-            background: 'rgba(255, 255, 255, 0.94)',
-            color: palette.text,
-            fontSize: 14,
-            lineHeight: '28px',
-            fontWeight: 700,
-            cursor: 'pointer',
-          }}
-        >
-          +
-        </button>
+        <Tooltip content={t('messages.tacticalReasoning.zoomOut')}>
+          <Button
+            type='text'
+            icon={<Minus theme='outline' size='14' />}
+            onClick={handleZoomOut}
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 999,
+              border: `1px solid ${palette.border}`,
+              background: 'rgba(255, 255, 255, 0.94)',
+              color: palette.text,
+              fontSize: 14,
+              lineHeight: '28px',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          />
+        </Tooltip>
+        <Tooltip content={t('messages.tacticalReasoning.resetView')}>
+          <Button
+            type='text'
+            icon={<Refresh theme='outline' size='14' />}
+            onClick={handleZoomReset}
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 999,
+              border: `1px solid ${palette.border}`,
+              background: 'rgba(255, 255, 255, 0.94)',
+              color: palette.text,
+              fontSize: 12,
+              lineHeight: '28px',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          />
+        </Tooltip>
+        <Tooltip content={t('messages.tacticalReasoning.zoomIn')}>
+          <Button
+            type='text'
+            icon={<Plus theme='outline' size='14' />}
+            onClick={handleZoomIn}
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 999,
+              border: `1px solid ${palette.border}`,
+              background: 'rgba(255, 255, 255, 0.94)',
+              color: palette.text,
+              fontSize: 14,
+              lineHeight: '28px',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          />
+        </Tooltip>
       </div>
       <svg
         ref={svgRef}
@@ -496,15 +665,31 @@ const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({
   depth = 0,
   collapseSignal,
 }) => {
+  const { t } = useTranslation();
   const collapseSignalRef = useRef<number | undefined>(collapseSignal);
   const [showMetrics, setShowMetrics] = useState(true);
   const [showTopology, setShowTopology] = useState(true);
+  const [graphLeafOnly, setGraphLeafOnly] = useState(true);
+  const [collapsedGraphNodeIds, setCollapsedGraphNodeIds] = useState<Set<string>>(() => new Set());
   const palette = DEFAULT_THEME;
   const metrics = data.content?.items || [];
   const graphNodes = data.graph?.nodes || [];
   const graphEdges = data.graph?.edges || [];
   const hasMetrics = metrics.length > 0;
   const hasGraph = graphNodes.length > 0 || graphEdges.length > 0 || Boolean(data.mermaid);
+  const graphHierarchy = useMemo(() => buildGraphHierarchy(graphNodes, graphEdges), [graphEdges, graphNodes]);
+  const visibleGraph = useMemo(
+    () =>
+      getVisibleGraph(
+        graphNodes,
+        graphEdges,
+        collapsedGraphNodeIds,
+        graphHierarchy.childMap,
+        graphLeafOnly,
+        graphHierarchy.leafIds
+      ),
+    [collapsedGraphNodeIds, graphEdges, graphHierarchy.childMap, graphHierarchy.leafIds, graphLeafOnly, graphNodes]
+  );
 
   const handleMetricsToggle = () => {
     setShowMetrics((value) => {
@@ -522,6 +707,36 @@ const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({
     setShowMetrics(false);
     setShowTopology(false);
   }, [collapseSignal]);
+
+  useEffect(() => {
+    setGraphLeafOnly(true);
+    setCollapsedGraphNodeIds(new Set());
+  }, [graphEdges, graphNodes]);
+
+  const toggleGraphNode = useMemo(() => {
+    return (nodeId: string) => {
+      setGraphLeafOnly(false);
+      setCollapsedGraphNodeIds((value) => {
+        const nextValue = new Set(value);
+        if (nextValue.has(nodeId)) {
+          nextValue.delete(nodeId);
+        } else {
+          nextValue.add(nodeId);
+        }
+        return nextValue;
+      });
+    };
+  }, []);
+
+  const collapseAllGraphNodes = () => {
+    setGraphLeafOnly(true);
+    setCollapsedGraphNodeIds(new Set());
+  };
+
+  const expandAllGraphNodes = () => {
+    setGraphLeafOnly(false);
+    setCollapsedGraphNodeIds(new Set());
+  };
 
   const shellStyle: React.CSSProperties = {
     borderRadius: depth > 0 ? 14 : 16,
@@ -552,6 +767,17 @@ const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({
     fontWeight: 700,
     padding: '6px 10px',
     cursor: 'pointer',
+  };
+
+  const graphActionStyle: React.CSSProperties = {
+    borderRadius: 999,
+    border: `1px solid ${palette.border}`,
+    background: 'rgba(255, 255, 255, 0.86)',
+    color: palette.badgeText,
+    fontSize: 12,
+    fontWeight: 700,
+    height: 28,
+    padding: '0 10px',
   };
 
   return (
@@ -590,7 +816,7 @@ const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({
                     fontWeight: 700,
                   }}
                 >
-                  Tactical Reasoning
+                  {t('messages.tacticalReasoning.title')}
                 </span>
               </div>
               <div style={{ color: palette.text, fontSize: 18, lineHeight: '24px', fontWeight: 800 }}>
@@ -612,15 +838,19 @@ const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({
                 textTransform: 'uppercase',
               }}
             >
-              <div>Mode</div>
-              <div style={{ color: palette.text, fontSize: 14, fontWeight: 800, marginTop: 2 }}>HUD</div>
+              <div>{t('messages.tacticalReasoning.mode')}</div>
+              <div style={{ color: palette.text, fontSize: 14, fontWeight: 800, marginTop: 2 }}>
+                {t('messages.tacticalReasoning.hud')}
+              </div>
             </div>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {hasMetrics ? (
-              <button type='button' style={toggleButtonStyle} onClick={handleMetricsToggle}>
-                {showMetrics ? 'Hide Tactical Metrics' : 'Show Tactical Metrics'}
-              </button>
+              <Button type='text' style={toggleButtonStyle} onClick={handleMetricsToggle}>
+                {showMetrics
+                  ? t('messages.tacticalReasoning.hideMetrics')
+                  : t('messages.tacticalReasoning.showMetrics')}
+              </Button>
             ) : null}
           </div>
         </div>
@@ -662,15 +892,56 @@ const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({
               ))}
             </div>
             {hasGraph ? (
-              <button type='button' style={toggleButtonStyle} onClick={() => setShowTopology((value) => !value)}>
-                {showTopology ? 'Hide Tactical Topology' : 'Show Tactical Topology'}
-              </button>
+              <Button type='text' style={toggleButtonStyle} onClick={() => setShowTopology((value) => !value)}>
+                {showTopology
+                  ? t('messages.tacticalReasoning.hideTopology')
+                  : t('messages.tacticalReasoning.showTopology')}
+              </Button>
             ) : null}
           </div>
         ) : null}
 
         {showTopology && hasGraph ? (
           <div style={sectionStyle}>
+            {!data.mermaid ? (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 10,
+                  marginBottom: 10,
+                }}
+              >
+                <div style={{ color: palette.text, fontSize: 13, fontWeight: 800 }}>
+                  {t('messages.tacticalReasoning.topologyTitle')}
+                  <span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500, marginLeft: 8 }}>
+                    {t('messages.tacticalReasoning.visibleNodes', {
+                      count: visibleGraph.nodes.length,
+                      total: graphNodes.length,
+                    })}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                  <Button
+                    type='text'
+                    icon={<Down theme='outline' size='14' />}
+                    style={graphActionStyle}
+                    onClick={collapseAllGraphNodes}
+                  >
+                    {t('messages.tacticalReasoning.collapseGraph')}
+                  </Button>
+                  <Button
+                    type='text'
+                    icon={<Up theme='outline' size='14' />}
+                    style={graphActionStyle}
+                    onClick={expandAllGraphNodes}
+                  >
+                    {t('messages.tacticalReasoning.expandGraph')}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
             <div
               style={{
                 borderRadius: 14,
@@ -680,7 +951,18 @@ const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({
                 padding: 12,
               }}
             >
-              {data.mermaid ? mermaidRenderer : <GraphViz nodes={graphNodes} edges={graphEdges} palette={palette} />}
+              {data.mermaid ? (
+                mermaidRenderer
+              ) : (
+                <GraphViz
+                  childMap={graphHierarchy.childMap}
+                  nodes={visibleGraph.nodes}
+                  edges={visibleGraph.edges}
+                  leafIds={graphHierarchy.leafIds}
+                  onToggleNode={toggleGraphNode}
+                  palette={palette}
+                />
+              )}
             </div>
           </div>
         ) : null}

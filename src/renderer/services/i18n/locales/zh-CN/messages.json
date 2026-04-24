@@ -62,5 +62,24 @@
     "yesAlwaysAllowTool": "是，始终允许来自服务器 \"{{serverName}}\" 的工具 \"{{toolName}}\"",
     "yesAlwaysAllowServer": "是，始终允许来自服务器 \"{{serverName}}\" 的所有工具",
     "no": "否 (esc)"
+  },
+  "tacticalReasoning": {
+    "title": "战术推理",
+    "mode": "模式",
+    "hud": "图谱",
+    "hideMetrics": "收起指标",
+    "showMetrics": "展开指标",
+    "hideTopology": "收起图谱",
+    "showTopology": "展开图谱",
+    "topologyTitle": "推理图谱",
+    "visibleNodes": "已显示 {{count}}/{{total}} 个节点",
+    "collapseGraph": "折叠",
+    "expandGraph": "展开",
+    "zoomOut": "缩小",
+    "zoomIn": "放大",
+    "resetView": "重置视图",
+    "emptyGraph": "暂无图谱数据",
+    "leafNode": "末级",
+    "levelLabel": "第 "
   }
 }

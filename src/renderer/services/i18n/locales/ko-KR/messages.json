@@ -62,5 +62,24 @@
     "yesAlwaysAllowTool": "예, 서버 \"{{serverName}}\"의 도구 \"{{toolName}}\" 항상 허용",
     "yesAlwaysAllowServer": "예, 서버 \"{{serverName}}\"의 모든 도구 항상 허용",
     "no": "아니요 (esc)"
+  },
+  "tacticalReasoning": {
+    "title": "전술 추론",
+    "mode": "모드",
+    "hud": "그래프",
+    "hideMetrics": "지표 접기",
+    "showMetrics": "지표 펼치기",
+    "hideTopology": "그래프 접기",
+    "showTopology": "그래프 펼치기",
+    "topologyTitle": "추론 그래프",
+    "visibleNodes": "{{count}}/{{total}}개 노드 표시",
+    "collapseGraph": "접기",
+    "expandGraph": "펼치기",
+    "zoomOut": "축소",
+    "zoomIn": "확대",
+    "resetView": "보기 초기화",
+    "emptyGraph": "그래프 데이터 없음",
+    "leafNode": "말단",
+    "levelLabel": "레벨 "
   }
 }
