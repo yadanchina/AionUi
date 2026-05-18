@@ -257,4 +257,4 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   );
 };
 
-export default MessageText;
+export default Messag
