@@ -38,7 +38,7 @@ export const DEFAULT_THEME_ID = 'tech-blue';
  */
 export const PRESET_THEMES: ICssTheme[] = [
   {
-    id: DEFAULT_THEME_ID,
+    id: 'default-theme',
     name: 'Default',
     is_preset: true,
     cover: defaultThemeCover,
