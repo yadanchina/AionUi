@@ -13,6 +13,8 @@ import SyntaxHighlighter from 'react-syntax-highlighter';
 import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import MermaidBlock from './MermaidBlock';
+import TacticalReasoningCard from '@/renderer/components/TacticalReasoningCard';
+import type { ReasoningCardData } from '@/renderer/components/TacticalReasoningCard';
 import { formatCode, getDiffLineStyle } from './markdownUtils';
 
 const PREVIEW_LINES = 3;
@@ -73,6 +75,20 @@ function CodeBlock(props: CodeBlockProps) {
       } catch {
         // fall through
       }
+    }
+  }
+
+  if (language === 'reasoning') {
+    try {
+      const reasoningData = JSON.parse(String(children).replace(/\n$/, '')) as ReasoningCardData;
+      return (
+        <TacticalReasoningCard
+          data={reasoningData}
+          renderMermaid={(chart: string) => <MermaidBlock code={chart} />}
+        />
+      );
+    } catch {
+      // Fall through to render as code block if JSON parsing fails
     }
   }
 
