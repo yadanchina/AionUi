@@ -63,6 +63,7 @@ export interface IConfigStorageRefer {
   /** 桌面模式下 WebUI 端口 / WebUI port in desktop mode */
   'webui.desktop.port'?: number;
   customCss: string; // 自定义 CSS 样式
+  customWelcomeTitle?: string; // 自定义欢迎语标题（中文）
   'css.themes': ICssTheme[]; // 自定义 CSS 主题列表 / Custom CSS themes list
   'css.activeThemeId': string; // 当前激活的主题 ID / Currently active theme ID
   'aionrs.config'?: {

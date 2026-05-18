@@ -4,8 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Input, Message } from '@arco-design/web-react';
 import FontSizeControl from '@/renderer/components/settings/FontSizeControl';
 import { ThemeSwitcher } from '@/renderer/components/settings/ThemeSwitcher';
 import CssThemeSettings from '@renderer/pages/settings/DisplaySettings/CssThemeSettings';
@@ -13,6 +14,7 @@ import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import AionCollapse from '@/renderer/components/base/AionCollapse';
 import { Down, Up } from '@icon-park/react';
 import { useSettingsViewMode } from '../settingsViewContext';
+import { ConfigStorage } from '@/common/config/storage';
 
 /**
  * 偏好设置行组件 / Preference row component
@@ -45,6 +47,37 @@ const DisplayModalContent: React.FC = () => {
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
+  const [welcomeTitle, setWelcomeTitle] = useState('');
+  const [welcomeTitleSaving, setWelcomeTitleSaving] = useState(false);
+
+  // 加载已保存的自定义欢迎语 / Load saved custom welcome title
+  useEffect(() => {
+    ConfigStorage.get('customWelcomeTitle').then((saved) => {
+      setWelcomeTitle(saved || '');
+    }).catch(() => {});
+  }, []);
+
+  // 保存自定义欢迎语 / Save custom welcome title
+  const handleWelcomeTitleSave = useCallback(
+    async (value: string) => {
+      setWelcomeTitleSaving(true);
+      try {
+        const trimmed = value.trim();
+        if (trimmed) {
+          await ConfigStorage.set('customWelcomeTitle', trimmed);
+        } else {
+          await ConfigStorage.set('customWelcomeTitle', undefined);
+        }
+        Message.success(t('common.saveSuccess'));
+      } catch {
+        Message.error(t('common.saveFailed'));
+      } finally {
+        setWelcomeTitleSaving(false);
+      }
+    },
+    [t]
+  );
+
 
   // 渲染折叠面板的展开/收起图标 / Render expand/collapse icon for collapse panel
   const renderExpandIcon = (active: boolean) =>
@@ -73,6 +106,24 @@ const DisplayModalContent: React.FC = () => {
                   {item.component}
                 </PreferenceRow>
               ))}
+            </div>
+          </div>
+
+          {/* 自定义欢迎语 / Custom Welcome Title */}
+          <div className='px-16px md:px-24px lg:px-28px py-14px md:py-16px bg-2 rd-16px'>
+            <div className='flex flex-col gap-10px'>
+              <span className='text-14px text-t-primary leading-22px'>
+                {t('settings.customWelcomeTitle')}
+              </span>
+              <Input
+                value={welcomeTitle}
+                onChange={(value) => setWelcomeTitle(value)}
+                onBlur={() => handleWelcomeTitleSave(welcomeTitle)}
+                onPressEnter={() => handleWelcomeTitleSave(welcomeTitle)}
+                placeholder={t('settings.customWelcomeTitlePlaceholder')}
+                disabled={welcomeTitleSaving}
+                maxLength={50}
+              />
             </div>
           </div>
 

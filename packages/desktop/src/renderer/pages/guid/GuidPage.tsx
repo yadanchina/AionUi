@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { IMcpServer } from '@/common/config/storage';
+import { ConfigStorage } from '@/common/config/storage';
 import { resolveLocaleKey } from '@/common/utils';
 
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
@@ -48,6 +49,17 @@ const GuidPage: React.FC = () => {
 
   const localeKey = resolveLocaleKey(i18n.language);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [customWelcomeTitle, setCustomWelcomeTitle] = useState('');
+
+  // 加载自定义欢迎语 / Load custom welcome title
+  useEffect(() => {
+    ConfigStorage.get('customWelcomeTitle')
+      .then((saved) => {
+        setCustomWelcomeTitle(saved || '');
+      })
+      .catch(() => {});
+  }, []);
+
 
   // Open external link
   const openLink = useCallback(async (url: string) => {
@@ -341,11 +353,11 @@ const GuidPage: React.FC = () => {
   }, [agentSelection.is_presetAgent, selectedAssistantRecord]);
 
   const heroTitle = useMemo(() => {
-    if (!agentSelection.is_presetAgent) return t('conversation.welcome.title');
+    if (!agentSelection.is_presetAgent) return customWelcomeTitle || t('conversation.welcome.title');
     const i18nName = selectedAssistantRecord?.name_i18n?.[localeKey];
     if (i18nName) return i18nName;
-    return mention.selectedAgentLabel || t('conversation.welcome.title');
-  }, [agentSelection.is_presetAgent, selectedAssistantRecord, localeKey, mention.selectedAgentLabel, t]);
+    return mention.selectedAgentLabel || customWelcomeTitle || t('conversation.welcome.title');
+  }, [agentSelection.is_presetAgent, selectedAssistantRecord, localeKey, mention.selectedAgentLabel, customWelcomeTitle, t]);
   const selectedAssistantDescription = useMemo(() => {
     return selectedAssistantRecord?.description_i18n?.[localeKey] || selectedAssistantRecord?.description || '';
   }, [selectedAssistantRecord, localeKey]);
