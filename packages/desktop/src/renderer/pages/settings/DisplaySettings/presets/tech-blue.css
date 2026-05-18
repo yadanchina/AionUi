@@ -1,0 +1,185 @@
+/* Tech Blue Theme / 科技蓝主题 */
+/* 深邃的蓝色调，结合电光蓝与青色点缀，呈现未来科技感 */
+/* Deep blue tones with electric blue and cyan accents for a futuristic tech aesthetic */
+
+:root {
+  /* Primary Colors - 主色调 */
+  --color-primary: #0068ff;
+  --primary: #0068ff;
+  --color-primary-light-1: #3386ff;
+  --color-primary-light-2: #5da3ff;
+  --color-primary-light-3: #88bfff;
+  --color-primary-dark-1: #0052d4;
+  --primary-rgb: 0, 104, 255;
+
+  /* Brand Colors - 品牌色 */
+  --brand: #4a6fa5;
+  --brand-light: #e8f0fe;
+  --brand-hover: #8aadde;
+  --color-brand-fill: #4a6fa5;
+  --color-brand-bg: #e8f0fe;
+
+  /* AOU Brand Colors - AOU 品牌色板 */
+  --aou-1: #e8f0fe;
+  --aou-2: #d4e2fc;
+  --aou-3: #b8cff8;
+  --aou-4: #8aadde;
+  --aou-5: #6b92c8;
+  --aou-6: #4a6fa5;
+  --aou-7: #345285;
+  --aou-8: #223a63;
+  --aou-9: #132342;
+  --aou-10: #0a1226;
+
+  /* Background Colors - 背景色 */
+  --color-bg-1: #f5f8fc;
+  --bg-1: #f5f8fc;
+  --color-bg-2: #eef3fa;
+  --bg-2: #eef3fa;
+  --color-bg-3: #e0e8f5;
+  --bg-3: #e0e8f5;
+  --color-bg-4: #c4d0e8;
+  --bg-4: #c4d0e8;
+  --bg-base: #ffffff;
+  --bg-5: #a8b8d8;
+  --bg-6: #8293b5;
+  --bg-8: #4a5a7a;
+  --bg-9: #1e2838;
+  --bg-10: #0c1424;
+
+  /* Interactive State Colors - 交互状态色 */
+  --bg-hover: #eef3fa;
+  --bg-active: #dce5f5;
+
+  /* Fill Colors - 填充色 */
+  --fill: #f5f8fc;
+  --color-fill: #f5f8fc;
+  --fill-0: #ffffff;
+  --fill-white-to-black: #ffffff;
+  --dialog-fill-0: #ffffff;
+  --inverse: #ffffff;
+
+  /* Text Colors - 文字色 */
+  --color-text-1: #132342;
+  --text-primary: #132342;
+  --color-text-2: #3a5078;
+  --text-secondary: #8293b5;
+  --color-text-3: #8293b5;
+  --text-disabled: #c4d0e8;
+  --text-0: #000000;
+  --text-white: #ffffff;
+
+  /* Border Colors - 边框色 */
+  --color-border: #d4dff0;
+  --color-border-1: #d4dff0;
+  --color-border-2: #e8eef8;
+  --border-base: #d4dff0;
+  --border-light: #e8eef8;
+  --border-special: var(--bg-3);
+
+  /* Semantic Colors - 语义色 */
+  --success: #00a86b;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #0068ff;
+
+  /* Message & UI Component Colors - 消息和组件色 */
+  --message-user-bg: #e8f0fe;
+  --message-tips-bg: #eef3ff;
+  --workspace-btn-bg: #eef2f8;
+}
+
+/* Dark Mode Overrides - 深色模式覆盖 / Deep Ocean Blue */
+[data-color-scheme='default'][data-theme='dark'] {
+  /* Primary Colors - Dark Mode / 阳光穿透海面 */
+  --color-primary: #0ea5e9;
+  --primary: #0ea5e9;
+  --color-primary-light-1: #38bdf8;
+  --color-primary-light-2: #5ecdfa;
+  --color-primary-light-3: #89ddfc;
+  --color-primary-dark-1: #0284c7;
+  --primary-rgb: 14, 165, 233;
+
+  /* Brand Colors - Dark Mode */
+  --brand: #5ea8c8;
+  --brand-light: #0f2740;
+  --brand-hover: #3d87b0;
+  --color-brand-fill: #5ea8c8;
+  --color-brand-bg: #0f2740;
+
+  /* AOU Brand Colors - Dark Mode / 从深海到浅海渐变 */
+  --aou-1: #05101e;
+  --aou-2: #091b33;
+  --aou-3: #0e2848;
+  --aou-4: #133860;
+  --aou-5: #1a4a7a;
+  --aou-6: #3d87b0;
+  --aou-7: #5ea8c8;
+  --aou-8: #85c4dc;
+  --aou-9: #b3dded;
+  --aou-10: #daf0f8;
+
+  /* Background Colors - Dark Mode / 深海分层 */
+  --color-bg-1: #061428;
+  --bg-1: #061428;
+  --color-bg-2: #091b35;
+  --bg-2: #091b35;
+  --color-bg-3: #0d2545;
+  --bg-3: #0d2545;
+  --color-bg-4: #123158;
+  --bg-4: #123158;
+  --bg-base: #030d1a;
+  --bg-5: #18406e;
+  --bg-6: #1e5085;
+  --bg-8: #3d729e;
+  --bg-9: #6b9ab8;
+  --bg-10: #a3c4d8;
+
+  /* Interactive State Colors - Dark Mode */
+  --bg-hover: #0a1f3a;
+  --bg-active: #0e2848;
+
+  /* Fill Colors - Dark Mode */
+  --fill: #061428;
+  --color-fill: #061428;
+  --fill-0: rgba(255, 255, 255, 0.05);
+  --fill-white-to-black: #000000;
+  --dialog-fill-0: #0d2545;
+  --inverse: #ffffff;
+
+  /* Text Colors - Dark Mode */
+  --color-text-1: #daf0f8;
+  --text-primary: #daf0f8;
+  --color-text-2: #94bfd4;
+  --text-secondary: #94bfd4;
+  --color-text-3: #5a8da8;
+  --text-disabled: #3d729e;
+  --text-0: #ffffff;
+  --text-white: #ffffff;
+
+  /* Border Colors - Dark Mode */
+  --color-border: #0e2848;
+  --color-border-1: #0e2848;
+  --color-border-2: #091b35;
+  --border-base: #0e2848;
+  --border-light: #091b35;
+  --border-special: #1a4a7a;
+
+  /* Semantic Colors - Dark Mode */
+  --success: #14b8a6;
+  --warning: #f59e0b;
+  --danger: #f87171;
+  --info: #0ea5e9;
+
+  /* Message & UI Component Colors - Dark Mode */
+  --message-user-bg: #0a1f3a;
+  --message-tips-bg: #091b35;
+  --workspace-btn-bg: #0a1f3a;
+}
+
+.agent-list,.home-footer{
+  display: none;
+}
+.absolute.right-12px.z-10{
+  display: none;
+}

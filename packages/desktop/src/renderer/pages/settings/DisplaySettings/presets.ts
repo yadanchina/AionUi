@@ -24,12 +24,13 @@ import retromaY2kCss from './presets/retroma-y2k.css?raw';
 import retromaObsidianBookCss from './presets/retroma-obsidian-book.css?raw';
 import discourseHorizonCss from './presets/discourse-horizon.css?raw';
 import glitteringInputFieldCss from './presets/glittering-input-field.css?raw';
+import techBlueCss from './presets/tech-blue.css?raw';
 
 /**
  * 默认主题 ID / Default theme ID
  * 用于标识默认主题（无自定义 CSS）/ Used to identify the default theme (no custom CSS)
  */
-export const DEFAULT_THEME_ID = 'default-theme';
+export const DEFAULT_THEME_ID = 'tech-blue';
 
 /**
  * 预设 CSS 主题列表 / Preset CSS themes list
@@ -105,5 +106,13 @@ export const PRESET_THEMES: ICssTheme[] = [
     css: glitteringInputFieldCss,
     created_at: Date.now(),
     updated_at: Date.now(),
+  },
+  {
+    id: 'tech-blue',
+    name: 'Tech Blue / 科技蓝',
+    isPreset: true,
+    css: techBlueCss,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
   },
 ];
