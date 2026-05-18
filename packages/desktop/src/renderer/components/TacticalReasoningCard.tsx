@@ -21,7 +21,6 @@ import {
 } from 'd3-force';
 import { select } from 'd3-selection';
 import { type ZoomBehavior, zoom, zoomIdentity } from 'd3-zoom';
-import { useTranslation } from 'react-i18next';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
 
 type ReasoningMetric = {
@@ -391,7 +390,6 @@ const GraphViz: React.FC<{
   onToggleNode: (nodeId: string) => void;
   palette: ThemePalette;
 }> = ({ childMap, nodes, edges, leafIds, onToggleNode, palette }) => {
-  const { t } = useTranslation();
   const svgRef = useRef<SVGSVGElement | null>(null);
   const zoomBehaviorRef = useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   const markerId = useId().replace(/:/g, '-');
@@ -672,7 +670,7 @@ const GraphViz: React.FC<{
           fontSize: 13,
         }}
       >
-        {t('messages.tacticalReasoning.emptyGraph')}
+        {'暂无图谱数据'}
       </div>
     );
   }
@@ -689,7 +687,7 @@ const GraphViz: React.FC<{
           gap: 6,
         }}
       >
-        <Tooltip content={t('messages.tacticalReasoning.zoomOut')}>
+        <Tooltip content={'缩小'}>
           <Button
             type='text'
             icon={<Minus theme='outline' size='14' />}
@@ -708,7 +706,7 @@ const GraphViz: React.FC<{
             }}
           />
         </Tooltip>
-        <Tooltip content={t('messages.tacticalReasoning.resetView')}>
+        <Tooltip content={'重置视图'}>
           <Button
             type='text'
             icon={<Refresh theme='outline' size='14' />}
@@ -727,7 +725,7 @@ const GraphViz: React.FC<{
             }}
           />
         </Tooltip>
-        <Tooltip content={t('messages.tacticalReasoning.zoomIn')}>
+        <Tooltip content={'放大'}>
           <Button
             type='text'
             icon={<Plus theme='outline' size='14' />}
@@ -762,7 +760,6 @@ const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({
   depth = 0,
   collapseSignal,
 }) => {
-  const { t } = useTranslation();
   const { theme } = useThemeContext();
   const collapseSignalRef = useRef<number | undefined>(collapseSignal);
   const [showMetrics, setShowMetrics] = useState(true);
@@ -914,7 +911,7 @@ const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({
                     fontWeight: 700,
                   }}
                 >
-                  {t('messages.tacticalReasoning.title')}
+                  {'战术推理'}
                 </span>
               </div>
               <div style={{ color: palette.text, fontSize: 18, lineHeight: '24px', fontWeight: 800 }}>
@@ -936,9 +933,9 @@ const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({
                 textTransform: 'uppercase',
               }}
             >
-              <div>{t('messages.tacticalReasoning.mode')}</div>
+              <div>{'模式'}</div>
               <div style={{ color: palette.text, fontSize: 14, fontWeight: 800, marginTop: 2 }}>
-                {t('messages.tacticalReasoning.hud')}
+                {'图谱'}
               </div>
             </div>
           </div>
@@ -946,8 +943,8 @@ const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({
             {hasMetrics ? (
               <Button type='text' style={toggleButtonStyle} onClick={handleMetricsToggle}>
                 {showMetrics
-                  ? t('messages.tacticalReasoning.hideMetrics')
-                  : t('messages.tacticalReasoning.showMetrics')}
+                  ? '收起指标'
+                  : '展开指标'}
               </Button>
             ) : null}
           </div>
@@ -992,8 +989,8 @@ const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({
             {hasGraph ? (
               <Button type='text' style={toggleButtonStyle} onClick={() => setShowTopology((value) => !value)}>
                 {showTopology
-                  ? t('messages.tacticalReasoning.hideTopology')
-                  : t('messages.tacticalReasoning.showTopology')}
+                  ? '收起图谱'
+                  : '展开图谱'}
               </Button>
             ) : null}
           </div>
@@ -1012,12 +1009,9 @@ const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({
                 }}
               >
                 <div style={{ color: palette.text, fontSize: 13, fontWeight: 800 }}>
-                  {t('messages.tacticalReasoning.topologyTitle')}
+                  {'推理图谱'}
                   <span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500, marginLeft: 8 }}>
-                    {t('messages.tacticalReasoning.visibleNodes', {
-                      count: visibleGraph.nodes.length,
-                      total: graphNodes.length,
-                    })}
+                    {`已显示 ${visibleGraph.nodes.length}/${graphNodes.length} 个节点`}
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
@@ -1027,7 +1021,7 @@ const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({
                     style={graphActionStyle}
                     onClick={collapseAllGraphNodes}
                   >
-                    {t('messages.tacticalReasoning.collapseGraph')}
+                    {'折叠'}
                   </Button>
                   <Button
                     type='text'
@@ -1035,7 +1029,7 @@ const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({
                     style={graphActionStyle}
                     onClick={expandAllGraphNodes}
                   >
-                    {t('messages.tacticalReasoning.expandGraph')}
+                    {'展开'}
                   </Button>
                 </div>
               </div>
