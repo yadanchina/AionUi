@@ -15,6 +15,7 @@ import classNames from 'classnames';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { copyText } from '@/renderer/utils/ui/clipboard';
+import TTSButton from '@renderer/components/chat/TTSButton';
 import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
 import FilePreview from '@renderer/components/media/FilePreview';
 import HorizontalFileList from '@renderer/components/media/HorizontalFileList';
@@ -226,14 +227,13 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
             </div>
           )}
         </div>
-        {/* Hover-revealed copy + timestamp row. Mobile has no hover affordance,
-            so we drop the row entirely — system-level long-press still copies. */}
         {!isMobile && (
           <div
             className={classNames('h-32px flex items-center mt-4px gap-8px', {
               'flex-row-reverse': isUserMessage,
             })}
           >
+            {!isUserMessage && text && <TTSButton text={text} />}
             {copyButton}
             {message.created_at && (
               <span className='text-12px text-t-secondary opacity-0 group-hover:opacity-100 transition-opacity select-none'>
@@ -257,4 +257,4 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   );
 };
 
-export default Messag
+export default MessageText;

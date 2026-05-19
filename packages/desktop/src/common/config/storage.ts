@@ -62,6 +62,17 @@ export interface IConfigStorageRefer {
   'webui.desktop.allowRemote'?: boolean;
   /** 桌面模式下 WebUI 端口 / WebUI port in desktop mode */
   'webui.desktop.port'?: number;
+  /** TTS 配置 / TTS configuration */
+  'tts.enabled'?: boolean;
+  'tts.apiUrl'?: string;
+  'tts.apiKey'?: string;
+  'tts.voice'?: string;
+  'tts.speed'?: number;
+  'tts.model'?: string;
+  'tts.engine'?: 'api' | 'browser';
+  'tts.voiceMode'?: 'preset' | 'clone';
+  'tts.promptSpeech'?: string;
+  'tts.promptText'?: string;
   customCss: string; // 自定义 CSS 样式
   customWelcomeTitle?: string; // 自定义欢迎语标题（中文）
   'css.themes': ICssTheme[]; // 自定义 CSS 主题列表 / Custom CSS themes list
