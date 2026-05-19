@@ -15,7 +15,6 @@ import {
   Robot,
   Speed,
   System,
-  VolumeNotice,
 } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
@@ -32,7 +31,6 @@ export const BUILTIN_TAB_IDS = [
   'capabilities',
   'display',
   'webui',
-  'tts',
   'pet',
   'system',
   'about',
@@ -109,7 +107,6 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         icon: isDesktop ? <Earth /> : <Communication />,
         path: 'webui',
       },
-      tts: { id: 'tts', label: '语音合成', icon: <VolumeNotice />, path: 'tts' },
       pet: { id: 'pet', label: t('pet.desktopPet'), icon: <Cat />, path: 'pet' },
       system: { id: 'system', label: t('settings.system'), icon: <System />, path: 'system' },
       about: { id: 'about', label: t('settings.about'), icon: <Info />, path: 'about' },

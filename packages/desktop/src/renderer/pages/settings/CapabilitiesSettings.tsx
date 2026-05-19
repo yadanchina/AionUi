@@ -21,6 +21,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import SkillsHubSettings from './SkillsHubSettings';
 import ToolsModalContent from '@/renderer/components/settings/SettingsModal/contents/ToolsModalContent';
+import TtsSettings from './TtsSettings';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 
 type CapabilitiesTab = 'skills' | 'tools';
@@ -65,8 +66,9 @@ const CapabilitiesSettings: React.FC = () => {
         <Tabs.TabPane key='skills' title={t('settings.capabilitiesTab.skills', { defaultValue: 'Skills' })}>
           <SkillsHubSettings withWrapper={false} />
         </Tabs.TabPane>
-        <Tabs.TabPane key='tools' title={t('settings.capabilitiesTab.tools', { defaultValue: 'MCP & Voice' })}>
+        <Tabs.TabPane key='tools' title={t('settings.capabilitiesTab.tools', { defaultValue: 'MCP' })}>
           <ToolsModalContent />
+          <TtsSettings />
         </Tabs.TabPane>
       </Tabs>
     </SettingsPageWrapper>

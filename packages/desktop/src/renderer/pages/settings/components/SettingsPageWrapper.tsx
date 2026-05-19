@@ -16,7 +16,6 @@ import {
   Puzzle,
   Robot,
   System,
-  VolumeNotice,
 } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -68,7 +67,6 @@ export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): 
       path: 'webui',
     },
     pet: { id: 'pet', label: t('pet.desktopPet'), icon: <Cat theme='outline' size='16' />, path: 'pet' },
-    tts: { id: 'tts', label: '语音合成', icon: <VolumeNotice theme='outline' size='16' />, path: 'tts' },
     system: { id: 'system', label: t('settings.system'), icon: <System theme='outline' size='16' />, path: 'system' },
     about: { id: 'about', label: t('settings.about'), icon: <Info theme='outline' size='16' />, path: 'about' },
   };
