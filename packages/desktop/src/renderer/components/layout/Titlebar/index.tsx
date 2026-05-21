@@ -13,11 +13,16 @@ import type { WorkspaceStateDetail } from '@renderer/utils/workspace/workspaceEv
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useNavigationHistory } from '@/renderer/hooks/context/NavigationHistoryContext';
 import { isElectronDesktop, isMacOS } from '@/renderer/utils/platform';
+import AppLogo from '@/renderer/assets/logos/brand/logo.png';
 import './titlebar.css';
 
 interface TitlebarProps {
   workspaceAvailable: boolean;
 }
+
+const AionLogoMark: React.FC = () => (
+  <img src={AppLogo} alt='logo' className='app-titlebar__brand-logo' aria-hidden='true' />
+);
 
 // Claude-desktop-style sidebar toggle icon: a rounded rectangle with a vertical divider
 // near the left edge, indicating a collapsible side panel. Rendered as inline SVG since

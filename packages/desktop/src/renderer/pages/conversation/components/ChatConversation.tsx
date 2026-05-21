@@ -333,7 +333,7 @@ const ChatConversation: React.FC<{
 
   // For ACP/Codex conversations, use AcpModelSelector that can show/switch models.
   // For other conversations, show disabled model selector.
-  // Mobile: model selection moves into the sendbox `+` action sheet, so the
+  // Mobile: model selection moves into the sendbox  + '`+`' +  action sheet, so the
   // header selector is suppressed to free up vertical space.
   const modelSelector = useMemo(() => {
     if (!conversation || isAionrsConversation) return undefined;
