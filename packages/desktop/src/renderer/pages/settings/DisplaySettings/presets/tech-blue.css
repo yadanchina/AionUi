@@ -176,10 +176,3 @@
   --message-tips-bg: #091b35;
   --workspace-btn-bg: #0a1f3a;
 }
-
-.agent-list,.home-footer{
-  display: none;
-}
-.absolute.right-12px.z-10{
-  display: none;
-}
