@@ -21,6 +21,8 @@ import GuidModelSelector from './components/GuidModelSelector';
 import MentionDropdown, { MentionSelectorBadge } from './components/MentionDropdown';
 import QuickActionButtons from './components/QuickActionButtons';
 import FeedbackReportModal from '@/renderer/components/settings/SettingsModal/contents/FeedbackReportModal';
+import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
+import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
 import { useGuidAgentSelection } from './hooks/useGuidAgentSelection';
 import { useGuidInput } from './hooks/useGuidInput';
 import { useGuidMention } from './hooks/useGuidMention';
@@ -606,7 +608,20 @@ const GuidPage: React.FC = () => {
       hidePresetTag
       loading={guidInput.loading}
       isButtonDisabled={send.isButtonDisabled}
-      onSend={send.sendMessageHandler}
+      speechInputNode={
+        <SpeechInputButton
+          disabled={guidInput.loading}
+          locale={localeKey}
+          onTranscript={(transcript) => {
+            guidInput.setInput(appendSpeechTranscript(guidInput.input, transcript));
+          }}
+        />
+      }
+      onSend={() => {
+        send.handleSend().catch((error) => {
+          console.error('Failed to send message:', error);
+        });
+      }}
     />
   );
 
