@@ -413,7 +413,7 @@
 .actionSubmit {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex-shrink: 0;
   margin-left: auto;
   min-width: 0;
