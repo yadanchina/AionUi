@@ -2,6 +2,7 @@ import type { BadgeProps } from '@arco-design/web-react';
 import { Badge, Spin } from '@arco-design/web-react';
 import { IconDown, IconRight } from '@arco-design/web-react/icon';
 import { Checklist, Right } from '@icon-park/react';
+import { useTranslation } from 'react-i18next';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ipcBridge } from '@/common';
 import type { NormalizedToolCall, NormalizedToolStatus, ToolMessage } from '@/common/chat/normalizeToolCall';
@@ -24,7 +25,24 @@ const statusToBadge = (status: NormalizedToolStatus): BadgeProps['status'] => {
   }
 };
 
-const ToolItemDetail: React.FC<{ item: NormalizedToolCall }> = ({ item }) => {
+const statusLabelMap: Record<string, string> = {
+  completed: 'success',
+  error: 'error',
+  running: 'running',
+  canceled: 'pending',
+  pending: 'pending',
+};
+
+const toolTypeIcon = (name: string): string => {
+  const lower = name.toLowerCase();
+  if (lower.includes('read') || lower.includes('open') || lower.includes('list')) return '\u{1F4C4}';
+  if (lower.includes('write') || lower.includes('edit') || lower.includes('create') || lower.includes('update')) return '\u{270F}\u{FE0F}';
+  if (lower.includes('search') || lower.includes('find') || lower.includes('grep')) return '\u{1F50D}';
+  if (lower.includes('run') || lower.includes('exec') || lower.includes('bash') || lower.includes('shell')) return '\u{2699}\u{FE0F}';
+  return '\u{1F527}';
+};
+
+const ToolItemDetail: React.FC<{ item: NormalizedToolCall; t: ReturnType<typeof useTranslation>['t'] }> = ({ item, t }) => {
   const [expanded, setExpanded] = useState(false);
   const [fullItem, setFullItem] = useState<NormalizedToolCall | null>(null);
   const [loadingFull, setLoadingFull] = useState(false);
@@ -57,20 +75,20 @@ const ToolItemDetail: React.FC<{ item: NormalizedToolCall }> = ({ item }) => {
   };
 
   return (
-    <div className='flex flex-col'>
-      <div className='flex flex-row color-#86909C gap-12px items-center'>
+    <div className='tool-item-row'>
+      <div className='tool-item-header'>
         <Badge status={statusToBadge(item.status)} className={item.status === 'running' ? 'badge-breathing' : ''} />
         <span
           className={
-            'flex-1 min-w-0' +
+            'tool-item-name' +
             (expanded ? ' break-all' : ' truncate') +
             (hasDetail ? ' cursor-pointer hover:color-#4E5969' : '')
           }
           onClick={hasDetail ? toggleExpanded : undefined}
         >
-          <span className='font-medium text-13px'>{displayItem.name}</span>
+          <span className=''>{displayItem.name}</span>
           {displayItem.description && displayItem.description !== displayItem.name && (
-            <span className='m-l-4px opacity-80 text-13px'>{displayItem.description}</span>
+            <span className='tool-item-desc'>{displayItem.description}</span>
           )}
         </span>
         {hasDetail && (
@@ -85,13 +103,13 @@ const ToolItemDetail: React.FC<{ item: NormalizedToolCall }> = ({ item }) => {
           {loadError && <div className='tool-detail-label'>Failed to load full output</div>}
           {displayItem.input && (
             <div className='tool-detail-section'>
-              <div className='tool-detail-label'>Input</div>
+              <div className='tool-detail-label'>{t('conversation.toolSteps.input', { defaultValue: 'Input' })}</div>
               <pre className='tool-detail-content'>{displayItem.input}</pre>
             </div>
           )}
           {displayItem.output && (
             <div className='tool-detail-section'>
-              <div className='tool-detail-label'>Output</div>
+              <div className='tool-detail-label'>{t('conversation.toolSteps.output', { defaultValue: 'Output' })}</div>
               <pre className='tool-detail-content'>{displayItem.output}</pre>
             </div>
           )}
@@ -102,12 +120,21 @@ const ToolItemDetail: React.FC<{ item: NormalizedToolCall }> = ({ item }) => {
 };
 
 const MessageToolGroupSummary: React.FC<{ messages: ToolMessage[] }> = ({ messages }) => {
+  const { t } = useTranslation();
   const hasRunning = hasRunningToolMessages(messages);
   const [showMore, setShowMore] = useState(hasRunning);
 
   useEffect(() => {
     if (hasRunning) setShowMore(true);
   }, [hasRunning]);
+
+  const statusCounts = useMemo(() => {
+    const counts = { processing: 0 };
+    tools.forEach((item) => {
+      if (item.status === 'running') counts.processing++;
+    });
+    return counts;
+  }, [tools]);
 
   const tools = useMemo(() => normalizeToolMessages(messages), [messages]);
 
@@ -117,7 +144,12 @@ const MessageToolGroupSummary: React.FC<{ messages: ToolMessage[] }> = ({ messag
         <span className='tool-group-summary__icon'>
           {hasRunning ? <Spin size={12} /> : <Checklist theme='outline' size='14' />}
         </span>
-        <span className='tool-group-summary__label'>View Steps {tools.length > 0 ? `· ${tools.length}` : ''}</span>
+        <span className='tool-group-summary__label'>{t('conversation.toolSteps.title', { defaultValue: '\u67E5\u770B\u6B65\u9AA4' })}
+        <span className='tool-group-summary__count'>{tools.length}</span>
+        {statusCounts.processing > 0 && (
+          <span className='tool-group-summary__running-badge'>{statusCounts.processing}</span>
+        )}
+      </span>
         <span className={`tool-group-summary__arrow${showMore ? ' tool-group-summary__arrow--open' : ''}`}>
           <Right theme='outline' size='12' />
         </span>
@@ -125,7 +157,7 @@ const MessageToolGroupSummary: React.FC<{ messages: ToolMessage[] }> = ({ messag
       {showMore && (
         <div className='tool-group-summary__body'>
           {tools.map((item) => (
-            <ToolItemDetail key={item.key} item={item} />
+            <ToolItemDetail key={item.key} item={item} t={t} />
           ))}
         </div>
       )}
