@@ -106,6 +106,13 @@ export async function fetchDetectedAgents(): Promise<AgentMetadata[]> {
   try {
     const agents = await ipcBridge.acpConversation.getAvailableAgents.invoke();
     if (Array.isArray(agents)) {
+      // Override openclaw-gateway name to 通用智能体
+      for (const agent of agents) {
+        if (agent.agent_type === 'openclaw-gateway') {
+          agent.name = '通用智能体';
+          agent.icon = '';
+        }
+      }
       return agents as AgentMetadata[];
     }
   } catch {

@@ -11,6 +11,7 @@
  */
 
 import { resolveBackendAssetUrl } from '@/renderer/utils/platform';
+import AppLogo from '@/renderer/assets/logos/brand/logo.png';
 
 /**
  * Agent Logo 映射表
@@ -80,6 +81,8 @@ function isDarkTheme(): boolean {
  * @returns Logo 路径，如果不存在则返回 null / Logo path, or null if not found
  */
 export function getAgentLogo(agent: string | undefined | null): string | null {
+  const agentLower = agent?.toLowerCase();
+  if (agentLower === 'openclaw' || agentLower === 'openclaw-gateway') return AppLogo;
   if (!agent || typeof agent !== 'string') return null;
   const key = agent.toLowerCase() as keyof typeof AGENT_LOGO_PATH_MAP;
   const path = AGENT_LOGO_PATH_MAP[key];
