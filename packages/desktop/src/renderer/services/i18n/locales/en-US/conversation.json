@@ -477,5 +477,16 @@
   "sendbox": {
     "hint": "Type / for commands, @ to reference files"
   },
-  "notFound": "Conversation not found or has been deleted"
+  "notFound": "Conversation not found or has been deleted",
+  "toolSteps": {
+    "title": "View Steps",
+    "input": "Input",
+    "output": "Output"
+  },
+  "toolStatus": {
+    "success": "Done",
+    "error": "Failed",
+    "running": "Running",
+    "pending": "Pending"
+  }
 }
