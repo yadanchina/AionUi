@@ -92,7 +92,7 @@ export default defineConfig(({ mode }) => {
         // '@aionui/web-host' excluded so its TS sources (which use ESM ".js" import specifiers)
         // are bundled by esbuild rather than left as `require('@aionui/web-host')`, which Node
         // cannot resolve because the package ships no compiled .js files (workspace-only).
-        externalizeDepsPlugin({ exclude: ['fix-path', '@aionui/web-host'] }),
+        externalizeDepsPlugin({ exclude: ['fix-path', '@aionui/web-host', 'd3-drag', 'd3-force', 'd3-selection', 'd3-zoom', 'd3-dispatch', 'd3-timer', 'd3-transition', 'd3-interpolate', 'd3-color', 'd3-ease', 'd3-quadtree'] }),
         ...(isDevelopment
           ? [
               {
