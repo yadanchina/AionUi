@@ -51,6 +51,7 @@ export type ConfigKeyMap = {
   'system.cronNotificationEnabled': boolean | undefined;
   'system.keepAwake': boolean | undefined;
   'system.autoPreviewOfficeFiles': boolean | undefined;
+  'customWelcomeTitle': string | undefined;
   'assistant.telegram.defaultModel': { id: string; use_model: string } | undefined;
   'assistant.telegram.agent':
     | { agent_type: string; backend?: string; id?: string; custom_agent_id?: string; name?: string }
@@ -76,7 +77,7 @@ export type ConfigKeyMap = {
   'pet.size': number | undefined;
   'pet.dnd': boolean | undefined;
   'pet.confirmEnabled': boolean | undefined;
-  // One-shot completion flags for legacy â†?backend migrations. Kept in the
+  // One-shot completion flags for legacy ï¿½?backend migrations. Kept in the
   // local config file (not the backend client-preferences bag) so a downgrade
   // to a pre-flag build still re-reads the legacy data unchanged. See
   // `migrateProviders` / `migrateAssistantsToBackend` (ELECTRON-1KT).

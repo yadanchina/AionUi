@@ -14,7 +14,7 @@ import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import AionCollapse from '@/renderer/components/base/AionCollapse';
 import { Down, Up } from '@icon-park/react';
 import { useSettingsViewMode } from '../settingsViewContext';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 
 /**
  * 偏好设置行组件 / Preference row component
@@ -52,9 +52,8 @@ const DisplayModalContent: React.FC = () => {
 
   // 加载已保存的自定义欢迎语 / Load saved custom welcome title
   useEffect(() => {
-    ConfigStorage.get('customWelcomeTitle').then((saved) => {
-      setWelcomeTitle(saved || '');
-    }).catch(() => {});
+    const saved = configService.get('customWelcomeTitle');
+    setWelcomeTitle(saved || '');
   }, []);
 
   // 保存自定义欢迎语 / Save custom welcome title
@@ -64,9 +63,9 @@ const DisplayModalContent: React.FC = () => {
       try {
         const trimmed = value.trim();
         if (trimmed) {
-          await ConfigStorage.set('customWelcomeTitle', trimmed);
+          await configService.set('customWelcomeTitle', trimmed);
         } else {
-          await ConfigStorage.set('customWelcomeTitle', undefined);
+          await configService.set('customWelcomeTitle', undefined);
         }
         Message.success(t('common.saveSuccess'));
       } catch {

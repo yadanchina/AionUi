@@ -7,7 +7,6 @@
 import { ipcBridge } from '@/common';
 import type { IMcpServer } from '@/common/config/storage';
 import { configService } from '@/common/config/configService';
-import { ConfigStorage } from '@/common/config/storage';
 import { resolveLocaleKey } from '@/common/utils';
 
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
@@ -56,11 +55,8 @@ const GuidPage: React.FC = () => {
 
   // 加载自定义欢迎语 / Load custom welcome title
   useEffect(() => {
-    ConfigStorage.get('customWelcomeTitle')
-      .then((saved) => {
-        setCustomWelcomeTitle(saved || '');
-      })
-      .catch(() => { });
+    const saved = configService.get('customWelcomeTitle');
+    if (saved) setCustomWelcomeTitle(saved);
   }, []);
 
 
