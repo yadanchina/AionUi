@@ -80,7 +80,8 @@ function CodeBlock(props: CodeBlockProps) {
 
   if (language === 'reasoning') {
     try {
-      const reasoningData = JSON.parse(String(children).replace(/\n$/, '')) as ReasoningCardData;
+      const rawText = String(children).trim();
+      const reasoningData = JSON.parse(rawText) as ReasoningCardData;
       return (
         <TacticalReasoningCard
           data={reasoningData}
