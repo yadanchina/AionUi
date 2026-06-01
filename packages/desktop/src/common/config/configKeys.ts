@@ -52,6 +52,16 @@ export type ConfigKeyMap = {
   'system.keepAwake': boolean | undefined;
   'system.autoPreviewOfficeFiles': boolean | undefined;
   'customWelcomeTitle': string | undefined;
+  'tts.enabled': boolean | undefined;
+  'tts.apiUrl': string | undefined;
+  'tts.apiKey': string | undefined;
+  'tts.voice': string | undefined;
+  'tts.speed': number | undefined;
+  'tts.model': string | undefined;
+  'tts.engine': 'api' | 'browser' | undefined;
+  'tts.voiceMode': 'preset' | 'clone' | undefined;
+  'tts.promptSpeech': string | undefined;
+  'tts.promptText': string | undefined;
   'assistant.telegram.defaultModel': { id: string; use_model: string } | undefined;
   'assistant.telegram.agent':
     | { agent_type: string; backend?: string; id?: string; custom_agent_id?: string; name?: string }

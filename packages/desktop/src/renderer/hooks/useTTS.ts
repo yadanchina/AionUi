@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { type TTSConfig, speak, stopSpeech, getBrowserVoices } from '@/common/api/tts';
 import { Message } from '@arco-design/web-react';
 import { useCallback, useRef, useState } from 'react';
@@ -21,33 +21,18 @@ const DEFAULT_TTS_CONFIG: TTSConfig = {
   promptText: '',
 };
 
-async function loadTTSConfig(): Promise<TTSConfig> {
-  try {
-    const [apiUrl, apiKey, voice, speed, model, engine, voiceMode, promptSpeech, promptText] = await Promise.all([
-      ConfigStorage.get('tts.apiUrl'),
-      ConfigStorage.get('tts.apiKey'),
-      ConfigStorage.get('tts.voice'),
-      ConfigStorage.get('tts.speed'),
-      ConfigStorage.get('tts.model'),
-      ConfigStorage.get('tts.engine'),
-      ConfigStorage.get('tts.voiceMode'),
-      ConfigStorage.get('tts.promptSpeech'),
-      ConfigStorage.get('tts.promptText'),
-    ]);
-    return {
-      apiUrl: apiUrl || DEFAULT_TTS_CONFIG.apiUrl,
-      apiKey: apiKey || '',
-      voice: voice || DEFAULT_TTS_CONFIG.voice,
-      speed: speed ?? DEFAULT_TTS_CONFIG.speed,
-      model: model || DEFAULT_TTS_CONFIG.model,
-      engine: (engine === 'api' || engine === 'browser') ? engine : 'api',
-      voiceMode: (voiceMode === 'preset' || voiceMode === 'clone') ? voiceMode : 'preset',
-      promptSpeech: promptSpeech || '',
-      promptText: promptText || '',
-    };
-  } catch {
-    return { ...DEFAULT_TTS_CONFIG };
-  }
+function loadTTSConfig(): TTSConfig {
+  return {
+    apiUrl: configService.get('tts.apiUrl') || DEFAULT_TTS_CONFIG.apiUrl,
+    apiKey: configService.get('tts.apiKey') || '',
+    voice: configService.get('tts.voice') || DEFAULT_TTS_CONFIG.voice,
+    speed: configService.get('tts.speed') ?? DEFAULT_TTS_CONFIG.speed,
+    model: configService.get('tts.model') || DEFAULT_TTS_CONFIG.model,
+    engine: (configService.get('tts.engine') === 'api' || configService.get('tts.engine') === 'browser') ? configService.get('tts.engine') as 'api' | 'browser' : 'api',
+    voiceMode: (configService.get('tts.voiceMode') === 'preset' || configService.get('tts.voiceMode') === 'clone') ? configService.get('tts.voiceMode') as 'preset' | 'clone' : 'preset',
+    promptSpeech: configService.get('tts.promptSpeech') || '',
+    promptText: configService.get('tts.promptText') || '',
+  };
 }
 
 export function useTTS() {
@@ -65,7 +50,7 @@ export function useTTS() {
     speakingRef.current = true;
     setSpeaking(true);
     try {
-      const config = await loadTTSConfig();
+      const config = loadTTSConfig();
       if (config.engine !== 'browser' && !config.apiKey) {
         Message.warning('请先在设置中配置 TTS API Key');
         return;

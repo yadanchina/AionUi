@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { getBrowserVoices } from '@/common/api/tts';
 import { Divider, Form, Input, Select, Switch } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -41,29 +41,30 @@ const TtsSettings: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    (async () => {
-      const saved = await Promise.all([
-        ConfigStorage.get('tts.enabled'), ConfigStorage.get('tts.engine'),
-        ConfigStorage.get('tts.apiUrl'), ConfigStorage.get('tts.apiKey'),
-        ConfigStorage.get('tts.voice'), ConfigStorage.get('tts.speed'),
-        ConfigStorage.get('tts.model'), ConfigStorage.get('tts.voiceMode'),
-        ConfigStorage.get('tts.promptSpeech'), ConfigStorage.get('tts.promptText'),
-      ]);
-      if (typeof saved[0] === 'boolean') setEnabled(saved[0]);
-      if (saved[1] === 'api' || saved[1] === 'browser') setEngine(saved[1]);
-      if (saved[2]) setApiUrl(saved[2]);
-      if (saved[3]) setApiKey(saved[3]);
-      if (saved[4]) setVoice(saved[4]);
-      if (typeof saved[5] === 'number') setSpeed(saved[5]);
-      if (saved[6]) setModel(saved[6]);
-      if (saved[7] === 'preset' || saved[7] === 'clone') setVoiceMode(saved[7]);
-      if (saved[8]) setPromptSpeech(saved[8]);
-      if (saved[9]) setPromptText(saved[9]);
-    })().catch(() => {});
+    const enabled = configService.get('tts.enabled');
+    if (typeof enabled === 'boolean') setEnabled(enabled);
+    const eng = configService.get('tts.engine');
+    if (eng === 'api' || eng === 'browser') setEngine(eng);
+    const url = configService.get('tts.apiUrl');
+    if (url) setApiUrl(url);
+    const key = configService.get('tts.apiKey');
+    if (key) setApiKey(key);
+    const voice = configService.get('tts.voice');
+    if (voice) setVoice(voice);
+    const speed = configService.get('tts.speed');
+    if (typeof speed === 'number') setSpeed(speed);
+    const model = configService.get('tts.model');
+    if (model) setModel(model);
+    const mode = configService.get('tts.voiceMode');
+    if (mode === 'preset' || mode === 'clone') setVoiceMode(mode);
+    const promptSpeech = configService.get('tts.promptSpeech');
+    if (promptSpeech) setPromptSpeech(promptSpeech);
+    const promptText = configService.get('tts.promptText');
+    if (promptText) setPromptText(promptText);
   }, []);
 
   const save = useCallback((key: string, value: unknown) => {
-    ConfigStorage.set(key as any, value).catch(() => {});
+    configService.set(key as any, value).catch(() => {});
   }, []);
 
   const isApi = engine === 'api';
