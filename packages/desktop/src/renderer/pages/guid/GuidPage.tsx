@@ -366,10 +366,11 @@ const GuidPage: React.FC = () => {
   }, [agentSelection.is_presetAgent, selectedAssistantRecord]);
 
   const heroTitle = useMemo(() => {
-    if (!agentSelection.is_presetAgent) return customWelcomeTitle || t('conversation.welcome.title');
+    if (customWelcomeTitle) return customWelcomeTitle;
+    if (!agentSelection.is_presetAgent) return t('conversation.welcome.title');
     const i18nName = selectedAssistantRecord?.name_i18n?.[localeKey];
     if (i18nName) return i18nName;
-    return mention.selectedAgentLabel || customWelcomeTitle || t('conversation.welcome.title');
+    return mention.selectedAgentLabel || t('conversation.welcome.title');
   }, [agentSelection.is_presetAgent, selectedAssistantRecord, localeKey, mention.selectedAgentLabel, customWelcomeTitle, t]);
   const selectedAssistantDescription = useMemo(() => {
     return selectedAssistantRecord?.description_i18n?.[localeKey] || selectedAssistantRecord?.description || '';
