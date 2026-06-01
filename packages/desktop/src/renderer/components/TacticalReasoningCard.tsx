@@ -639,7 +639,6 @@ const GraphViz: React.FC<{
     palette.border,
     palette.subtext,
     palette.text,
-    t,
     width,
   ]);
 
