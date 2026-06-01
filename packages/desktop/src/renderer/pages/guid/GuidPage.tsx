@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { IMcpServer } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { ConfigStorage } from '@/common/config/storage';
 import { resolveLocaleKey } from '@/common/utils';
 
@@ -59,7 +60,7 @@ const GuidPage: React.FC = () => {
       .then((saved) => {
         setCustomWelcomeTitle(saved || '');
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
 
@@ -148,6 +149,16 @@ const GuidPage: React.FC = () => {
     preselectAgentKey,
     locationKey: location.key,
   });
+
+  // Filter out hidden agents for AgentPillBar
+  const visibleAvailableAgents = useMemo(() => {
+    if (!agentSelection.availableAgents) return undefined;
+    const hidden: string[] = configService.get('agents.hidden') ?? [];
+    return agentSelection.availableAgents.filter((a) => {
+      const key = agentSelection.getAgentKey(a);
+      return !hidden.includes(key);
+    });
+  }, [agentSelection.availableAgents, agentSelection.getAgentKey]);
 
   const guidInput = useGuidInput({
     locationState: location.state as { workspace?: string } | null,
@@ -246,8 +257,8 @@ const GuidPage: React.FC = () => {
           const query = mention.mentionQuery?.toLowerCase();
           const exactMatch = query
             ? mention.filteredMentionOptions.find(
-                (option) => option.label.toLowerCase() === query || option.tokens.has(query)
-              )
+              (option) => option.label.toLowerCase() === query || option.tokens.has(query)
+            )
             : undefined;
           const selected =
             exactMatch ||
@@ -771,11 +782,11 @@ const GuidPage: React.FC = () => {
                 />
               ) : null}
             </div>
-          ) : agentSelection.availableAgents === undefined ? (
+          ) : visibleAvailableAgents === undefined ? (
             <AgentPillBarSkeleton />
-          ) : agentSelection.availableAgents.length > 0 ? (
+          ) : visibleAvailableAgents.length > 0 ? (
             <AgentPillBar
-              availableAgents={agentSelection.availableAgents}
+              availableAgents={visibleAvailableAgents}
               selectedAgentKey={agentSelection.selectedAgentKey}
               getAgentKey={agentSelection.getAgentKey}
               onSelectAgent={handleSelectAgentFromPillBar}

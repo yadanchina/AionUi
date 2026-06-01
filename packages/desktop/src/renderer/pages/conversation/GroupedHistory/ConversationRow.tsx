@@ -10,6 +10,7 @@ import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistan
 import { CronJobIndicator } from '@/renderer/pages/cron';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { configService } from '@/common/config/configService';
 import { Checkbox, Dropdown, Menu, Spin, Tooltip } from '@arco-design/web-react';
 import { DeleteOne, EditOne, Export, MessageOne, MoreOne, Pushpin } from '@icon-park/react';
 import classNames from 'classnames';
@@ -58,6 +59,18 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
       return <CronJobIndicator status={cronStatus} size={16} className='flex-shrink-0' />;
     }
 
+    const backendKey = getBackendKeyFromConversation(conversation);
+    const hiddenAgents: string[] = configService.get('agents.hidden') ?? [];
+    if (backendKey && hiddenAgents.includes(backendKey)) {
+      return (
+        <MessageOne
+          theme='outline'
+          size='16'
+          className='line-height-0 flex-shrink-0 text-t-secondary'
+        />
+      );
+    }
+
     // When the row is pinned, hovering reveals a pushpin marker that overlays
     // the leading icon. We dim the resting icon on hover so the pin reads cleanly.
     const pinnedHoverFade = isPinned ? 'group-hover:opacity-0 transition-opacity' : '';
@@ -80,7 +93,6 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
       );
     }
 
-    const backendKey = getBackendKeyFromConversation(conversation);
     const logo = getAgentLogo(backendKey);
     if (logo) {
       return (

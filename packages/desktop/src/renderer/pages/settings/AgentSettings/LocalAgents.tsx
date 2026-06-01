@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { configService } from '@/common/config/configService';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import AionModal from '@/renderer/components/base/AionModal';
 import { useAgents } from '@/renderer/hooks/agent/useAgents';
@@ -22,6 +23,7 @@ const LocalAgents: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [hubModalVisible, setHubModalVisible] = useState(false);
+  const [hiddenAgents, setHiddenAgents] = useState<string[]>(() => configService.get('agents.hidden') ?? []);
 
   // Single fetch for all agents; both detected and custom lists are derived from it.
   const { agents: allAgents, revalidate: mutateAgents } = useAgents();
@@ -88,6 +90,17 @@ const LocalAgents: React.FC = () => {
   const aionrsAgent = detectedAgents?.find((a) => a.agent_type === 'aionrs' || a.backend === 'aionrs');
   const otherDetected = detectedAgents?.filter((a) => a.agent_type !== 'aionrs' && a.backend !== 'aionrs') ?? [];
 
+  const toggleAgentVisibility = useCallback(
+    (agentKey: string) => {
+      setHiddenAgents((prev) => {
+        const next = prev.includes(agentKey) ? prev.filter((k) => k !== agentKey) : [...prev, agentKey];
+        configService.set('agents.hidden', next).catch(() => {});
+        return next;
+      });
+    },
+    []
+  );
+
   const openCustomAgentEditor = useCallback(() => {
     setEditingAgent(null);
     setEditorVisible(true);
@@ -152,7 +165,7 @@ const LocalAgents: React.FC = () => {
       </div>
       <div className='grid grid-cols-2 gap-10px px-16px md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'>
         {aionrsAgent && (
-          <AgentCard type='detected' agent={aionrsAgent} onGoToChat={() => goToChatWithAgent(aionrsAgent)} />
+          <AgentCard type='detected' agent={aionrsAgent} onGoToChat={() => goToChatWithAgent(aionrsAgent)} visible={!hiddenAgents.includes(getAgentKey(aionrsAgent))} onToggle={() => toggleAgentVisibility(getAgentKey(aionrsAgent))} />
         )}
         {otherDetected.map((agent) => (
           <AgentCard
@@ -160,6 +173,8 @@ const LocalAgents: React.FC = () => {
             type='detected'
             agent={agent}
             onGoToChat={() => goToChatWithAgent(agent)}
+            visible={!hiddenAgents.includes(getAgentKey(agent))}
+            onToggle={() => toggleAgentVisibility(getAgentKey(agent))}
           />
         ))}
       </div>

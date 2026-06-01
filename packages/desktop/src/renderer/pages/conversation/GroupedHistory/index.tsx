@@ -5,6 +5,7 @@
  */
 
 import type { TChatConversation } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import AionModal from '@/renderer/components/base/AionModal';
 import DirectorySelectionModal from '@/renderer/components/settings/DirectorySelectionModal';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
@@ -28,6 +29,7 @@ import { useConversations } from './hooks/useConversations';
 import { useDragAndDrop } from './hooks/useDragAndDrop';
 import { useExport } from './hooks/useExport';
 import type { ConversationRowProps, WorkspaceGroupedHistoryProps } from './types';
+import { getBackendKeyFromConversation } from './utils/exportHelpers';
 
 const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   onSessionClick,
@@ -107,15 +109,39 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     }
   }, [id, setActiveConversation]);
 
-  const {
-    conversations,
-    isConversationGenerating,
-    hasCompletionUnread,
-    expandedWorkspaces,
-    pinnedConversations,
-    timelineSections,
-    handleToggleWorkspace,
-  } = useConversations();
+  const raw = useConversations();
+  const { conversations, isConversationGenerating, hasCompletionUnread, expandedWorkspaces, handleToggleWorkspace } = raw;
+
+  // Filter conversations belonging to hidden agents
+  const { pinnedConversations, timelineSections } = useMemo(() => {
+    const hidden: string[] = configService.get('agents.hidden') ?? [];
+    if (hidden.length === 0) return { pinnedConversations: raw.pinnedConversations, timelineSections: raw.timelineSections };
+    const isHidden = (conv: TChatConversation) => {
+      const key = getBackendKeyFromConversation(conv);
+      return key ? hidden.includes(key) : false;
+    };
+    return {
+      pinnedConversations: raw.pinnedConversations.filter((c) => !isHidden(c)),
+      timelineSections: raw.timelineSections
+        .map((section) => ({
+          ...section,
+          items: section.items
+            .map((item) => {
+              if (item.type === 'workspace' && item.workspaceGroup) {
+                const filtered = item.workspaceGroup.conversations.filter((conv) => !isHidden(conv));
+                if (filtered.length === 0) return null;
+                return { ...item, workspaceGroup: { ...item.workspaceGroup, conversations: filtered } };
+              }
+              if (item.type === 'conversation' && item.conversation) {
+                return isHidden(item.conversation) ? null : item;
+              }
+              return item;
+            })
+            .filter(Boolean),
+        }))
+        .filter((section) => section.items.length > 0),
+    };
+  }, [raw.pinnedConversations, raw.timelineSections]);
 
   const {
     selectedConversationIds,

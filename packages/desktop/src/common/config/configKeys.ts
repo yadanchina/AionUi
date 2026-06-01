@@ -45,6 +45,7 @@ export type ConfigKeyMap = {
   'workspace.pasteConfirm': boolean | undefined;
   'upload.saveToWorkspace': boolean | undefined;
   'guid.lastSelectedAgent': string | undefined;
+  'agents.hidden': string[] | undefined;
   'system.closeToTray': boolean | undefined;
   'system.notificationEnabled': boolean | undefined;
   'system.cronNotificationEnabled': boolean | undefined;
@@ -75,7 +76,7 @@ export type ConfigKeyMap = {
   'pet.size': number | undefined;
   'pet.dnd': boolean | undefined;
   'pet.confirmEnabled': boolean | undefined;
-  // One-shot completion flags for legacy â†’ backend migrations. Kept in the
+  // One-shot completion flags for legacy â†?backend migrations. Kept in the
   // local config file (not the backend client-preferences bag) so a downgrade
   // to a pre-flag build still re-reads the legacy data unchanged. See
   // `migrateProviders` / `migrateAssistantsToBackend` (ELECTRON-1KT).

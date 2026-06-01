@@ -39,6 +39,8 @@ type AgentCardProps =
       type: 'detected';
       agent: DetectedAgent;
       onGoToChat: () => void;
+      visible?: boolean;
+      onToggle?: (visible: boolean) => void;
     }
   | {
       type: 'custom';
@@ -54,7 +56,7 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
   const goToChatButtonClassName = '!w-full !justify-center !rounded-10px !text-12px';
 
   if (props.type === 'detected') {
-    const { agent, onGoToChat } = props;
+    const { agent, onGoToChat, onToggle, visible } = props;
     const extensionAvatar = resolveExtensionAssetUrl(agent.isExtension ? agent.avatar : undefined);
     const logo =
       extensionAvatar ||
@@ -85,6 +87,12 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
         <Button size='small' type='secondary' onClick={onGoToChat} className={goToChatButtonClassName}>
           {t('settings.agentManagement.goToChat')}
         </Button>
+        {onToggle && (
+          <div className='flex items-center justify-center gap-6px pt-8px'>
+            <Typography.Text className='text-11px text-t-tertiary'>在聊天中显示</Typography.Text>
+            <Switch size='small' checked={visible !== false} onChange={onToggle} />
+          </div>
+        )}
       </div>
     );
   }
