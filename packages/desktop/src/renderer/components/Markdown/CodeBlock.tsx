@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import { copyText } from '@/renderer/utils/ui/clipboard';
+import JSON5 from 'json5';
 import MermaidBlock from './MermaidBlock';
 import TacticalReasoningCard from '@/renderer/components/TacticalReasoningCard';
 import type { ReasoningCardData } from '@/renderer/components/TacticalReasoningCard';
@@ -81,7 +82,7 @@ function CodeBlock(props: CodeBlockProps) {
   if (language === 'reasoning') {
     try {
       const rawText = String(children).trim();
-      const reasoningData = JSON.parse(rawText) as ReasoningCardData;
+      const reasoningData = JSON5.parse(rawText) as ReasoningCardData;
       return (
         <TacticalReasoningCard
           data={reasoningData}
