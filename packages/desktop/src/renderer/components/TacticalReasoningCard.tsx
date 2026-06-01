@@ -756,6 +756,7 @@ const GraphViz: React.FC<{
 const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({
   data,
   mermaidRenderer,
+  renderMermaid,
   depth = 0,
   collapseSignal,
 }) => {
@@ -1043,7 +1044,7 @@ const TacticalReasoningCard: React.FC<TacticalReasoningCardProps> = ({
               }}
             >
               {data.mermaid ? (
-                mermaidRenderer
+                mermaidRenderer ?? renderMermaid?.(data.mermaid)
               ) : (
                 <GraphViz
                   childMap={graphHierarchy.childMap}

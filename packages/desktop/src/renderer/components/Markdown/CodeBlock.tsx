@@ -87,7 +87,8 @@ function CodeBlock(props: CodeBlockProps) {
           renderMermaid={(chart: string) => <MermaidBlock code={chart} />}
         />
       );
-    } catch {
+    } catch (err) {
+      console.error('[CodeBlock] Failed to parse reasoning JSON:', err);
       // Fall through to render as code block if JSON parsing fails
     }
   }
