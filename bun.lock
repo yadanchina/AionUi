@@ -168,6 +168,10 @@
       "version": "0.0.0",
       "dependencies": {
         "@aionui/web-host": "workspace:*",
+        "d3-drag": "^3.0.0",
+        "d3-force": "^3.0.0",
+        "d3-selection": "^3.0.0",
+        "d3-zoom": "^3.0.0",
       },
     },
     "packages/shared-scripts": {
