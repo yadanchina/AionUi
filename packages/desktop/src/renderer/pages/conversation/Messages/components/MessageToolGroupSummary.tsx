@@ -128,6 +128,8 @@ const MessageToolGroupSummary: React.FC<{ messages: ToolMessage[] }> = ({ messag
     if (hasRunning) setShowMore(true);
   }, [hasRunning]);
 
+  const tools = useMemo(() => normalizeToolMessages(messages), [messages]);
+
   const statusCounts = useMemo(() => {
     const counts = { processing: 0 };
     tools.forEach((item) => {
@@ -135,8 +137,6 @@ const MessageToolGroupSummary: React.FC<{ messages: ToolMessage[] }> = ({ messag
     });
     return counts;
   }, [tools]);
-
-  const tools = useMemo(() => normalizeToolMessages(messages), [messages]);
 
   return (
     <div className='tool-group-summary'>
