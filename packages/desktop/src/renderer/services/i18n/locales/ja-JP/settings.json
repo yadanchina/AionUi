@@ -1,4 +1,4 @@
-{
+﻿{
   "title": "Settings",
   "skillsHub": {
     "title": "スキルハブ",
@@ -436,6 +436,9 @@
   "speechToTextDetectLanguage": "言語を自動検出",
   "speechToTextPunctuate": "句読点を追加",
   "speechToTextSmartFormat": "スマート整形",
+  "speechToTextMode": "リクエストモード",
+  "speechToTextModeBackend": "バックエンドプロキシ",
+  "speechToTextModeFrontend": "フロントエンド直接",
   "speechToTextRequired": "必須",
   "speechToTextOptional": "任意",
   "mcp": "MCP統合",

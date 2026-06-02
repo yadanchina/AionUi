@@ -37,6 +37,7 @@ const areEnvRecordsEqual = (a: Record<string, string>, b: Record<string, string>
 };
 const DEFAULT_SPEECH_TO_TEXT_CONFIG: SpeechToTextConfig = {
   enabled: false,
+  mode: 'backend',
   provider: 'openai',
   openai: {
     api_key: '',
@@ -83,6 +84,16 @@ const SpeechToTextSettingsSection: React.FC<{
       </span>
     ),
     [t]
+  );
+
+    const handleModeChange = useCallback(
+    (value: string) => {
+      onChange((current) => ({
+        ...current,
+        mode: value as SpeechToTextConfig['mode'],
+      }));
+    },
+    [onChange]
   );
 
   const handleProviderChange = useCallback(
@@ -148,6 +159,13 @@ const SpeechToTextSettingsSection: React.FC<{
               <AionSelect value={config.provider} onChange={handleProviderChange}>
                 <AionSelect.Option value='openai'>{t('settings.speechToTextProviderOpenAI')}</AionSelect.Option>
                 <AionSelect.Option value='deepgram'>{t('settings.speechToTextProviderDeepgram')}</AionSelect.Option>
+              </AionSelect>
+            </Form.Item>
+
+            <Form.Item label={t('settings.speechToTextMode')}>
+              <AionSelect value={config.mode} onChange={handleModeChange}>
+                <AionSelect.Option value='backend'>{t('settings.speechToTextModeBackend')}</AionSelect.Option>
+                <AionSelect.Option value='frontend'>{t('settings.speechToTextModeFrontend')}</AionSelect.Option>
               </AionSelect>
             </Form.Item>
 

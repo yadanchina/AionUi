@@ -28,6 +28,7 @@ export type DeepgramSpeechToTextConfig = {
 export type SpeechToTextConfig = {
   autoSend?: boolean;
   enabled: boolean;
+  mode: 'backend' | 'frontend';
   provider: SpeechToTextProvider;
   deepgram?: DeepgramSpeechToTextConfig;
   openai?: OpenAISpeechToTextConfig;

@@ -1,4 +1,4 @@
-{
+﻿{
   "title": "Настройки",
   "skillsHub": {
     "title": "Центр навыков",
@@ -428,6 +428,9 @@
   "speechToTextDetectLanguage": "Автоопределение языка",
   "speechToTextPunctuate": "Добавить пунктуацию",
   "speechToTextSmartFormat": "Умное форматирование",
+  "speechToTextMode": "Режим запроса",
+  "speechToTextModeBackend": "Прокси сервера",
+  "speechToTextModeFrontend": "Прямой фронтенд",
   "speechToTextRequired": "Обязательно",
   "speechToTextOptional": "Опционально",
   "mcp": "Интеграция MCP",

@@ -1,4 +1,4 @@
-{
+﻿{
   "title": "Ayarlar",
   "skillsHub": {
     "title": "Beceri Merkezi",
@@ -436,6 +436,9 @@
   "speechToTextDetectLanguage": "Dili Otomatik Algıla",
   "speechToTextPunctuate": "Noktalama Ekle",
   "speechToTextSmartFormat": "Akıllı Biçimlendirme",
+  "speechToTextMode": "İstek Modu",
+  "speechToTextModeBackend": "Arka Uç Proxy",
+  "speechToTextModeFrontend": "Ön Uç Doğrudan",
   "speechToTextRequired": "Zorunlu",
   "speechToTextOptional": "İsteğe bağlı",
   "mcp": "MCP Entegrasyonu",

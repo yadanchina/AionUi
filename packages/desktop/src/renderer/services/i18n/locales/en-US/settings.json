@@ -1,4 +1,4 @@
-{
+﻿{
   "title": "Settings",
   "skillsHub": {
     "title": "Skills Hub",
@@ -438,6 +438,9 @@
   "speechToTextDetectLanguage": "Detect Language Automatically",
   "speechToTextPunctuate": "Add Punctuation",
   "speechToTextSmartFormat": "Smart Formatting",
+  "speechToTextMode": "Request Mode",
+  "speechToTextModeBackend": "Backend Proxy",
+  "speechToTextModeFrontend": "Frontend Direct",
   "speechToTextRequired": "Required",
   "speechToTextOptional": "Optional",
   "mcp": "MCP Integration",

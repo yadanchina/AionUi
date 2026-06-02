@@ -12,6 +12,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import styles from '../index.module.css';
+import '@/renderer/components/chat/SendBox/sendbox.css';
 
 type GuidWorkspaceFootnoteProps = {
   workspaceDir: string;

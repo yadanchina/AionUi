@@ -1,4 +1,4 @@
-{
+﻿{
   "title": "Settings",
   "skillsHub": {
     "title": "技能中心",
@@ -436,6 +436,9 @@
   "speechToTextDetectLanguage": "自動偵測語言",
   "speechToTextPunctuate": "加入標點",
   "speechToTextSmartFormat": "智慧格式化",
+  "speechToTextMode": "請求模式",
+  "speechToTextModeBackend": "後端轉發",
+  "speechToTextModeFrontend": "前端直連",
   "speechToTextRequired": "必填",
   "speechToTextOptional": "選填",
   "mcp": "MCP 集成",

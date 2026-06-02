@@ -1,4 +1,4 @@
-{
+﻿{
   "title": "설정",
   "skillsHub": {
     "title": "스킬 허브",
@@ -436,6 +436,9 @@
   "speechToTextDetectLanguage": "언어 자동 감지",
   "speechToTextPunctuate": "구두점 추가",
   "speechToTextSmartFormat": "스마트 포맷",
+  "speechToTextMode": "요청 모드",
+  "speechToTextModeBackend": "백엔드 프록시",
+  "speechToTextModeFrontend": "프론트엔드 직접",
   "speechToTextRequired": "필수",
   "speechToTextOptional": "선택",
   "mcp": "MCP 통합",

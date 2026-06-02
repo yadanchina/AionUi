@@ -5,6 +5,8 @@
  */
 
 import { ipcBridge } from '@/common';
+import { configService } from '@/common/config/configService';
+import type { SpeechToTextConfig } from '@/common/types/provider/speech';
 import type { SpeechToTextResult } from '@/common/types/provider/speech';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 
@@ -58,6 +60,91 @@ async function convertToWav(blob: Blob): Promise<Blob> {
   return new Blob([wavBuffer],{type:'audio/wav'});
 }
 
+async function transcribeViaOpenAI(blob: Blob, config: SpeechToTextConfig): Promise<SpeechToTextResult> {
+  const openaiConfig = config.openai;
+  if (!openaiConfig?.api_key) throw new Error('STT_OPENAI_NOT_CONFIGURED');
+
+  const baseUrl = openaiConfig.base_url || 'https://api.openai.com/v1';
+  const url = baseUrl.replace(/\/+$/, '') + '/audio/transcriptions';
+
+  const formData = new FormData();
+  formData.append('file', blob, 'audio.wav');
+  formData.append('model', openaiConfig.model || 'whisper-1');
+  formData.append('response_format', 'json');
+  if (openaiConfig.language) formData.append('language', openaiConfig.language);
+  if (openaiConfig.prompt) formData.append('prompt', openaiConfig.prompt);
+  if (openaiConfig.temperature !== undefined) formData.append('temperature', String(openaiConfig.temperature));
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${openaiConfig.api_key}` },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errBody = await response.text();
+    throw new Error(`STT_REQUEST_FAILED:${response.status} ${errBody}`);
+  }
+
+  const data = await response.json() as { text: string; language?: string };
+  return {
+    text: data.text,
+    model: openaiConfig.model || 'whisper-1',
+    provider: 'openai',
+    language: data.language,
+  };
+}
+
+async function transcribeViaDeepgram(blob: Blob, config: SpeechToTextConfig): Promise<SpeechToTextResult> {
+  const deepgramConfig = config.deepgram;
+  if (!deepgramConfig?.api_key) throw new Error('STT_DEEPGRAM_NOT_CONFIGURED');
+
+  const baseUrl = deepgramConfig.base_url || 'https://api.deepgram.com/v1';
+  const url = baseUrl.replace(/\/+$/, '') + '/listen';
+
+  const params = new URLSearchParams();
+  if (!deepgramConfig.detectLanguage && deepgramConfig.language) params.append('language', deepgramConfig.language);
+  if (deepgramConfig.detectLanguage) params.append('detect_language', 'true');
+  if (deepgramConfig.punctuate !== undefined) params.append('punctuate', String(deepgramConfig.punctuate));
+  if (deepgramConfig.smartFormat !== undefined) params.append('smart_format', String(deepgramConfig.smartFormat));
+  params.append('model', deepgramConfig.model || 'nova-2');
+
+  const fullUrl = url + '?' + params.toString();
+
+  const response = await fetch(fullUrl, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Token ${deepgramConfig.api_key}`,
+      'Content-Type': blob.type || 'audio/wav',
+    },
+    body: blob,
+  });
+
+  if (!response.ok) {
+    const errBody = await response.text();
+    throw new Error(`STT_REQUEST_FAILED:${response.status} ${errBody}`);
+  }
+
+  const data = await response.json() as {
+    results?: { channels?: Array<{ alternatives?: Array<{ transcript: string }> }> };
+  };
+
+  const transcript = data.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
+  return {
+    text: transcript,
+    model: deepgramConfig.model || 'nova-2',
+    provider: 'deepgram',
+  };
+}
+
+const getSttConfig = async (): Promise<SpeechToTextConfig | undefined> => {
+  try {
+    return await configService.get('tools.speechToText');
+  } catch {
+    return undefined;
+  }
+};
+
 export async function transcribeAudioBlob(blob: Blob, languageHint?: string): Promise<SpeechToTextResult> {
   ensureAudioSize(blob);
 
@@ -67,6 +154,14 @@ export async function transcribeAudioBlob(blob: Blob, languageHint?: string): Pr
   }
   const mimeType = audioBlob.type || 'audio/wav';
   const file_name = createAudioFileName(mimeType);
+
+  const sttConfig = await getSttConfig();
+  if (sttConfig?.enabled && sttConfig.mode === 'frontend') {
+    if (sttConfig.provider === 'deepgram') {
+      return transcribeViaDeepgram(audioBlob, sttConfig);
+    }
+    return transcribeViaOpenAI(audioBlob, sttConfig);
+  }
 
   if (isElectronDesktop()) {
     const audioBuffer = new Uint8Array(await audioBlob.arrayBuffer());
