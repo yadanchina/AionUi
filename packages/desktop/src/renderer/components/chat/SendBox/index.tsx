@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { configService } from '@/common/config/configService';
 import AtFileMenu from '@/renderer/components/chat/AtFileMenu';
 import BtwOverlay from '@/renderer/components/chat/BtwOverlay';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
@@ -1270,10 +1271,24 @@ const SendBox: React.FC<{
 
   const handleSpeechTranscript = useCallback(
     (transcript: string) => {
-      const current_value = latestInputRef.current;
-      setInputRef.current(appendSpeechTranscript(current_value, transcript));
+      const trimmed = transcript.trim();
+      if (!trimmed) return;
+
+      const speechConfig = configService.get('tools.speechToText');
+      if (speechConfig?.autoSend) {
+        setInput('');
+        setIsLoading(true);
+        onSend(trimmed)
+          .catch(() => {})
+          .finally(() => {
+            setIsLoading(false);
+          });
+      } else {
+        const current_value = latestInputRef.current;
+        setInputRef.current(appendSpeechTranscript(current_value, transcript));
+      }
     },
-    [latestInputRef, setInputRef]
+    [latestInputRef, onSend, setInputRef]
   );
   const speechLocale = i18n?.language || 'en-US';
 

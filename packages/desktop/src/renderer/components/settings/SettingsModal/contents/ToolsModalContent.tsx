@@ -36,6 +36,7 @@ const areEnvRecordsEqual = (a: Record<string, string>, b: Record<string, string>
   return aKeys.length === bKeys.length && aKeys.every((key) => a[key] === b[key]);
 };
 const DEFAULT_SPEECH_TO_TEXT_CONFIG: SpeechToTextConfig = {
+  autoSend: false,
   enabled: false,
   mode: 'backend',
   provider: 'openai',
@@ -168,6 +169,19 @@ const SpeechToTextSettingsSection: React.FC<{
                 <AionSelect.Option value='frontend'>{t('settings.speechToTextModeFrontend')}</AionSelect.Option>
               </AionSelect>
             </Form.Item>
+
+            <div className='flex items-center justify-between mt-12px'>
+              <span className='text-13px text-t-secondary'>{t('settings.speechToTextAutoSend')}</span>
+              <Switch
+                checked={config.autoSend !== false}
+                onChange={(checked) => {
+                  onChange((current) => ({
+                    ...current,
+                    autoSend: checked,
+                  }));
+                }}
+              />
+            </div>
 
             {config.provider === 'openai' ? (
               <>

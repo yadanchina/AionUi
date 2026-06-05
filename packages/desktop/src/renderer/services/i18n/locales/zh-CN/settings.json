@@ -1,4 +1,4 @@
-﻿{
+{
   "title": "设置",
   "skillsHub": {
     "title": "技能中心",
@@ -965,5 +965,6 @@
     "pendingTimeout": "审批请求已过期（5 分钟）。请重试。",
     "pendingCancel": "取消",
     "pendingTimeRemaining": "剩余时间：{{time}}"
-  }
+  },
+  "speechToTextAutoSend": "语音识别后自动发送"
 }
