@@ -477,5 +477,62 @@
   "sendbox": {
     "hint": "輸入 / 喚起命令，@ 引用檔案"
   },
-  "notFound": "會話不存在或已被刪除"
+  "notFound": "會話不存在或已被刪除",
+  "toolStatus": {
+    "inProgress": "進行中",
+    "success": "Done",
+    "error": "Failed",
+    "running": "Running",
+    "pending": "Pending"
+  },
+  "toolTypes": {
+    "fileEdit": "檔案編輯",
+    "fileRead": "檔案讀取",
+    "shellCommand": "終端命令"
+  },
+  "toolCallId": "工具呼叫ID",
+  "toolSteps": {
+    "failedToLoadOutput": "載入完整輸出失敗",
+    "title": "View Steps",
+    "input": "Input",
+    "output": "Output"
+  },
+  "toolNames": {
+    "read": "讀取檔案",
+    "read_file": "讀取檔案",
+    "Read": "讀取檔案",
+    "write": "寫入檔案",
+    "write_file": "寫入檔案",
+    "Write": "寫入檔案",
+    "WriteFile": "寫入檔案",
+    "edit": "編輯檔案",
+    "edit_file": "編輯檔案",
+    "Edit": "編輯檔案",
+    "replace": "檔案替換",
+    "bash": "終端命令",
+    "Bash": "終端命令",
+    "shell": "終端命令",
+    "execute": "執行命令",
+    "execute_command": "執行命令",
+    "run": "運行命令",
+    "search": "搜尋",
+    "grep": "搜尋",
+    "find": "查找",
+    "list": "列出檔案",
+    "list_files": "列出檔案",
+    "ls": "列出檔案",
+    "web_search": "網路搜尋",
+    "web_fetch": "取得網頁",
+    "ImageGeneration": "圖片生成",
+    "apply_patch": "應用補丁",
+    "Task": "子任務",
+    "task": "子任務",
+    "ask": "詢問使用者",
+    "ask_user": "詢問使用者",
+    "glob": "檔案匹配",
+    "Glob": "檔案匹配",
+    "todo_write": "更新任務列表",
+    "TodoWrite": "更新任務列表",
+    "exec": "執行"
+  }
 }

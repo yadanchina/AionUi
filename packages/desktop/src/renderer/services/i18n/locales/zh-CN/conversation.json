@@ -481,12 +481,58 @@
   "toolSteps": {
     "title": "查看步骤",
     "input": "输入",
-    "output": "输出"
+    "output": "输出",
+    "failedToLoadOutput": "加载完整输出失败"
   },
   "toolStatus": {
     "success": "完成",
     "error": "失败",
     "running": "执行中",
-    "pending": "等待中"
+    "pending": "等待中",
+    "inProgress": "进行中"
+  },
+  "toolTypes": {
+    "fileEdit": "文件编辑",
+    "fileRead": "文件读取",
+    "shellCommand": "终端命令"
+  },
+  "toolCallId": "工具调用ID",
+  "toolNames": {
+    "read": "读取文件",
+    "read_file": "读取文件",
+    "Read": "读取文件",
+    "write": "写入文件",
+    "write_file": "写入文件",
+    "Write": "写入文件",
+    "WriteFile": "写入文件",
+    "edit": "编辑文件",
+    "edit_file": "编辑文件",
+    "Edit": "编辑文件",
+    "replace": "文件替换",
+    "bash": "终端命令",
+    "Bash": "终端命令",
+    "shell": "终端命令",
+    "exec": "执行",
+    "execute": "执行命令",
+    "execute_command": "执行命令",
+    "run": "运行命令",
+    "search": "搜索",
+    "grep": "搜索",
+    "find": "查找",
+    "list": "列出文件",
+    "list_files": "列出文件",
+    "ls": "列出文件",
+    "web_search": "网络搜索",
+    "web_fetch": "获取网页",
+    "ImageGeneration": "图片生成",
+    "apply_patch": "应用补丁",
+    "Task": "子任务",
+    "task": "子任务",
+    "ask": "询问用户",
+    "ask_user": "询问用户",
+    "glob": "文件匹配",
+    "Glob": "文件匹配",
+    "todo_write": "更新任务列表",
+    "TodoWrite": "更新任务列表"
   }
 }

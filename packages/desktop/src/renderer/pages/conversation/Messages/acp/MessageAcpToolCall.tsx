@@ -11,15 +11,17 @@ import { parseDiff } from '@/renderer/utils/file/diffUtils';
 import { Card, Tag } from '@arco-design/web-react';
 import { createTwoFilesPatch } from 'diff';
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import MarkdownView from '@renderer/components/Markdown';
 
 const StatusTag: React.FC<{ status: string }> = ({ status }) => {
+  const { t } = useTranslation();
   const getTagProps = () => {
     switch (status) {
       case 'pending':
-        return { color: 'blue', text: 'Pending' };
+        return { color: 'blue', text: t('conversation.toolStatus.pending', { defaultValue: 'Pending' }) };
       case 'in_progress':
-        return { color: 'orange', text: 'In Progress' };
+        return { color: 'orange', text: t('conversation.toolStatus.inProgress', { defaultValue: 'In Progress' }) };
       default:
         return { color: 'gray', text: status };
     }
@@ -65,7 +67,7 @@ const ContentView: React.FC<{ content: IMessageAcpToolCall['content']['update'][
     );
   }
 
-  // 处理 content 类型，包含 text 内容
+// 处理 content 类型，包含 text 内容
   if (content.type === 'content' && content.content && content.content.type === 'text' && content.content.text) {
     return (
       <div className='mt-3'>
@@ -82,6 +84,7 @@ const ContentView: React.FC<{ content: IMessageAcpToolCall['content']['update'][
 };
 
 const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ message }) => {
+  const { t } = useTranslation();
   const { content } = message;
   if (!content?.update) {
     return null;
@@ -92,11 +95,11 @@ const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ messag
   const getKindDisplayName = (kind: string) => {
     switch (kind) {
       case 'edit':
-        return 'File Edit';
+        return t('conversation.toolTypes.fileEdit', { defaultValue: 'File Edit' });
       case 'read':
-        return 'File Read';
+        return t('conversation.toolTypes.fileRead', { defaultValue: 'File Read' });
       case 'execute':
-        return 'Shell Command';
+        return t('conversation.toolTypes.shellCommand', { defaultValue: 'Shell Command' });
       default:
         return kind;
     }
@@ -126,7 +129,9 @@ const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ messag
               ))}
             </div>
           )}
-          <div className='text-xs text-t-secondary mt-2'>Tool Call ID: {tool_call_id}</div>
+          <div className='text-xs text-t-secondary mt-2'>
+            {t('conversation.toolCallId', { defaultValue: 'Tool Call ID' })}: {tool_call_id}
+          </div>
         </div>
       </div>
     </Card>

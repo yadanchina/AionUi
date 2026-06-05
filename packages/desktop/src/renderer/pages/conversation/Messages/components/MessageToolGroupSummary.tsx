@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import type { NormalizedToolCall, NormalizedToolStatus, ToolMessage } from '@/common/chat/normalizeToolCall';
 import { normalizeToolMessages, hasRunningToolMessages } from '@/common/chat/normalizeToolCall';
 import './MessageToolGroupSummary.css';
+import { getToolDisplayName } from '@renderer/utils/toolDisplay';
 
 const statusToBadge = (status: NormalizedToolStatus): BadgeProps['status'] => {
   switch (status) {
@@ -36,13 +37,18 @@ const statusLabelMap: Record<string, string> = {
 const toolTypeIcon = (name: string): string => {
   const lower = name.toLowerCase();
   if (lower.includes('read') || lower.includes('open') || lower.includes('list')) return '\u{1F4C4}';
-  if (lower.includes('write') || lower.includes('edit') || lower.includes('create') || lower.includes('update')) return '\u{270F}\u{FE0F}';
+  if (lower.includes('write') || lower.includes('edit') || lower.includes('create') || lower.includes('update'))
+    return '\u{270F}\u{FE0F}';
   if (lower.includes('search') || lower.includes('find') || lower.includes('grep')) return '\u{1F50D}';
-  if (lower.includes('run') || lower.includes('exec') || lower.includes('bash') || lower.includes('shell')) return '\u{2699}\u{FE0F}';
+  if (lower.includes('run') || lower.includes('exec') || lower.includes('bash') || lower.includes('shell'))
+    return '\u{2699}\u{FE0F}';
   return '\u{1F527}';
 };
 
-const ToolItemDetail: React.FC<{ item: NormalizedToolCall; t: ReturnType<typeof useTranslation>['t'] }> = ({ item, t }) => {
+const ToolItemDetail: React.FC<{ item: NormalizedToolCall; t: ReturnType<typeof useTranslation>['t'] }> = ({
+  item,
+  t,
+}) => {
   const [expanded, setExpanded] = useState(false);
   const [fullItem, setFullItem] = useState<NormalizedToolCall | null>(null);
   const [loadingFull, setLoadingFull] = useState(false);
@@ -86,7 +92,7 @@ const ToolItemDetail: React.FC<{ item: NormalizedToolCall; t: ReturnType<typeof 
           }
           onClick={hasDetail ? toggleExpanded : undefined}
         >
-          <span className=''>{displayItem.name}</span>
+          <span className=''>{getToolDisplayName(t, displayItem.name)}</span>
           {displayItem.description && displayItem.description !== displayItem.name && (
             <span className='tool-item-desc'>{displayItem.description}</span>
           )}
@@ -99,8 +105,14 @@ const ToolItemDetail: React.FC<{ item: NormalizedToolCall; t: ReturnType<typeof 
       </div>
       {expanded && hasDetail && (
         <div className='tool-detail-panel m-l-20px m-t-4px'>
-          {loadingFull && <div className='tool-detail-label'>Loading...</div>}
-          {loadError && <div className='tool-detail-label'>Failed to load full output</div>}
+          {loadingFull && (
+            <div className='tool-detail-label'>{t('common.loading', { defaultValue: 'Loading...' })}</div>
+          )}
+          {loadError && (
+            <div className='tool-detail-label'>
+              {t('conversation.toolSteps.failedToLoadOutput', { defaultValue: 'Failed to load full output' })}
+            </div>
+          )}
           {displayItem.input && (
             <div className='tool-detail-section'>
               <div className='tool-detail-label'>{t('conversation.toolSteps.input', { defaultValue: 'Input' })}</div>
@@ -144,12 +156,13 @@ const MessageToolGroupSummary: React.FC<{ messages: ToolMessage[] }> = ({ messag
         <span className='tool-group-summary__icon'>
           {hasRunning ? <Spin size={12} /> : <Checklist theme='outline' size='14' />}
         </span>
-        <span className='tool-group-summary__label'>{t('conversation.toolSteps.title', { defaultValue: '\u67E5\u770B\u6B65\u9AA4' })}
-        <span className='tool-group-summary__count'>{tools.length}</span>
-        {statusCounts.processing > 0 && (
-          <span className='tool-group-summary__running-badge'>{statusCounts.processing}</span>
-        )}
-      </span>
+        <span className='tool-group-summary__label'>
+          {t('conversation.toolSteps.title', { defaultValue: '\u67E5\u770B\u6B65\u9AA4' })}
+          <span className='tool-group-summary__count'>{tools.length}</span>
+          {statusCounts.processing > 0 && (
+            <span className='tool-group-summary__running-badge'>{statusCounts.processing}</span>
+          )}
+        </span>
         <span className={`tool-group-summary__arrow${showMore ? ' tool-group-summary__arrow--open' : ''}`}>
           <Right theme='outline' size='12' />
         </span>

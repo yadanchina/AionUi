@@ -22,6 +22,7 @@ import MarkdownView from '@renderer/components/Markdown';
 import { ToolConfirmationOutcome } from '@renderer/utils/common';
 import { ImagePreviewContext } from '../MessageList';
 import { COLLAPSE_CONFIG, TEXT_CONFIG } from '../constants';
+import { getToolDisplayName } from '@renderer/utils/toolDisplay';
 import type { ImageGenerationResult, WriteFileResult } from '../types';
 
 const CODE_STYLE = { marginTop: 4, marginBottom: 4 };
@@ -556,7 +557,7 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
               content={
                 <div>
                   <Tag className={'mr-4px'}>
-                    {name}
+                    {getToolDisplayName(t, name)}
                     {status === 'Canceled' ? `(${t('messages.canceledExecution')})` : ''}
                   </Tag>
                 </div>
