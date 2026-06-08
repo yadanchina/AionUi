@@ -227,7 +227,8 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
             </div>
           )}
         </div>
-        {!isMobile && (
+        {/* {!isMobile && ( */}
+        {true && (
           <div
             className={classNames('h-32px flex items-center mt-4px gap-8px', {
               'flex-row-reverse': isUserMessage,
